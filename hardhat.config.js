@@ -1,18 +1,27 @@
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
+require('hardhat-contract-sizer');
 
 // Remember to add your RPC provider URL for Goerli and populate the accounts
 // arrays with your testing private key.
 module.exports = {
-  solidity: "0.8.9",
+  solidity: {
+    version: "0.8.9",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 900
+      }
+    }
+  },
   networks: {
-    goerli: {
-      url: "<your_goerli_rpc_url>",
-      accounts: ["<your_testing_private_key>"],
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/`,
     },
-    bscTestnet: {
-      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
-      accounts: ["<your_testing_private_key>"],
-    },
+  },
+  contractSizer: {
+    alphaSort: false,
+    disambiguatePaths: true,
+    runOnCompile: false,
   },
 };

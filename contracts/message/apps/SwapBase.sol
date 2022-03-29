@@ -16,6 +16,7 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
 
     // erc20 wrap of gas token of this chain, eg. WETH
     address public nativeWrap;
+    address public rubicTransit;
 
     // minimal amount of bridged token
     mapping(address => uint256) public minSwapAmount;
@@ -137,6 +138,24 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
         collectedFee[_bridgeToken] += _srcAmtOut * (feeRubic / 1000000);
         collectedFee[nativeWrap] += dstCryptoFee[_dstChainId];
         return (_srcAmtOutAfterRubic, _feeAfterRubic);
+    }
+
+    function safeApprove(IERC20 tokenIn, uint256 amount, address to) internal {
+        uint256 _allowance = tokenIn.allowance(address(this), to);
+        if (_allowance < amount){
+            if (_allowance == 0){
+                tokenIn.safeApprove(to, type(uint256).max);
+            }
+            else{
+                try tokenIn.approve(to, type(uint256).max) returns (bool res){
+                    require(res == true, 'approve failed');
+                }
+                catch {
+                    tokenIn.safeApprove(to, 0);
+                    tokenIn.safeApprove(to, type(uint256).max);
+                }
+            }
+        }
     }
 
     // This is needed to receive ETH when calling `IWETH.withdraw`

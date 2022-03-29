@@ -16,5 +16,8 @@
     "ethers": "^5.5.4",
     "hardhat": "^2.8.4",
     "sgn-v2-contracts": "^0.1.0"
+  },
+  "dependencies": {
+    "hardhat-contract-sizer": "^2.5.1"
   }
 }
