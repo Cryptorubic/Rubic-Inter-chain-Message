@@ -57,7 +57,7 @@ contract TransferSwapV2 is SwapBase {
         address _receiver,
         uint256 _amountIn,
         uint256 _cBridgePart,
-        uint256 _dstChainId,
+        uint64 _dstChainId,
         SwapInfoV2 calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage,
@@ -85,13 +85,13 @@ contract TransferSwapV2 is SwapBase {
         address _receiver,
         uint256 _amountIn,
         uint256 _cBridgePart,
-        uint256 _dstChainId,
+        uint64 _dstChainId,
         SwapInfoV2 calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage,
         bool _nativeOut
     ) private {
-        (uint256 chainId, address srcTokenOut, uint256 srcAmtIn, uint256 srcAmtOut) = _swapV2(
+        (uint64 chainId, address srcTokenOut, uint256 srcAmtIn, uint256 srcAmtOut) = _swapV2(
             _amountIn,
             _dstChainId,
             _srcSwap
@@ -155,11 +155,11 @@ contract TransferSwapV2 is SwapBase {
      */
     function _swapV2(
         uint256 _amountIn,
-        uint256 _dstChainId,
+        uint64 _dstChainId,
         SwapInfoV2 memory _srcSwap
-    ) private returns (uint256, address, uint256, uint256){
+    ) private returns (uint64, address, uint256, uint256){
         nonce += 1;
-        uint256 chainId = block.chainid;
+        uint64 chainId = uint64(block.chainid);
 
         require(
             _srcSwap.path.length > 1 && _dstChainId != chainId,
@@ -188,8 +188,8 @@ contract TransferSwapV2 is SwapBase {
     function _crossChainTransferWithSwapV2(
         address _receiver,
         uint256 _amountIn,
-        uint256 _chainId,
-        uint256 _dstChainId,
+        uint64 _chainId,
+        uint64 _dstChainId,
         SwapInfoV2 memory _srcSwap,
         SwapInfoDest memory _dstSwap,
         uint32 _maxBridgeSlippage,
