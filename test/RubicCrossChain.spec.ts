@@ -1,4 +1,4 @@
-import { ethers, waffle } from 'hardhat';
+import { ethers, network, waffle } from 'hardhat';
 import { swapContractFixture } from './shared/fixtures';
 import { Wallet } from '@ethersproject/wallet';
 import { SwapMain, TestERC20 } from '../typechain-types';
@@ -23,6 +23,11 @@ describe('RubicCrossChain', () => {
 
     beforeEach('deploy fixture', async () => {
         ({ swapMain, token } = await loadFixture(swapContractFixture));
+
+        await network.provider.send('hardhat_setBalance', [
+            wallet.address,
+            '0x152D02C7E14AF6800000' // 100000 eth
+        ]);
     });
 
     it('constructor initializes', async () => {
@@ -33,4 +38,6 @@ describe('RubicCrossChain', () => {
         const routers = ROUTERS_POLYGON.split(',');
         expect(await swapMain.getSupportedDEXes()).to.deep.eq(routers);
     });
+
+    //it('')
 });

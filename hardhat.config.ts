@@ -14,6 +14,7 @@ const {
     POLYGONSCAN_API_KEY,
     MNEMONIC,
     INFURA_ID_PROJECT,
+    POLYGON_INFURA_KEY,
     BSC_RPC_KEY
 } = envConfig.parsed || {};
 
@@ -34,10 +35,9 @@ const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
 module.exports = {
   networks: {
     hardhat: {
-      allowUnlimitedContractSize: true,
-      loggingEnabled: false,
-      accounts:{
-        count:100
+      chainId: 137,
+      forking: {
+        url: `https://polygon-mainnet.infura.io/v3/${POLYGON_INFURA_KEY}`
       }
     },
     mainnet: {
