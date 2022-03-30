@@ -1,15 +1,19 @@
-// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.0;
 
-pragma solidity >=0.7.6;
+contract TestERC20 {
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
 
-import "./base/IERC20Minimal.sol";
+    event Transfer(address indexed from, address indexed to, uint256 value);
 
-contract TestERC20 is IERC20Minimal {
-    mapping(address => uint256) public override balanceOf;
-    mapping(address => mapping(address => uint256)) public override allowance;
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 
-    constructor(uint256 amountToMint) {
-        mint(msg.sender, amountToMint);
+    constructor() {
+        mint(msg.sender, 100000000000 ether);
     }
 
     function mint(address to, uint256 amount) public {
@@ -20,7 +24,6 @@ contract TestERC20 is IERC20Minimal {
 
     function transfer(address recipient, uint256 amount)
         external
-        override
         returns (bool)
     {
         uint256 balanceBefore = balanceOf[msg.sender];
@@ -32,27 +35,35 @@ contract TestERC20 is IERC20Minimal {
             balanceRecipient + amount >= balanceRecipient,
             "recipient balance overflow"
         );
-        balanceOf[recipient] = balanceRecipient + amount;
+        if (!isDeflationary) {
+            balanceOf[recipient] = balanceRecipient + amount;
+        } else {
+            balanceOf[recipient] =
+                balanceRecipient +
+                (amount - (amount * 5) / 100);
+        }
 
         emit Transfer(msg.sender, recipient, amount);
         return true;
     }
 
-    function approve(address spender, uint256 amount)
-        external
-        override
-        returns (bool)
-    {
+    function approve(address spender, uint256 amount) external returns (bool) {
         allowance[msg.sender][spender] = amount;
         emit Approval(msg.sender, spender, amount);
         return true;
+    }
+
+    bool isDeflationary = false;
+
+    function setDefl() external {
+        isDeflationary = true;
     }
 
     function transferFrom(
         address sender,
         address recipient,
         uint256 amount
-    ) external override returns (bool) {
+    ) external returns (bool) {
         uint256 allowanceBefore = allowance[sender][msg.sender];
         require(allowanceBefore >= amount, "allowance insufficient");
 
@@ -63,7 +74,13 @@ contract TestERC20 is IERC20Minimal {
             balanceRecipient + amount >= balanceRecipient,
             "overflow balance recipient"
         );
-        balanceOf[recipient] = balanceRecipient + amount;
+        if (!isDeflationary) {
+            balanceOf[recipient] = balanceRecipient + amount;
+        } else {
+            balanceOf[recipient] =
+                balanceRecipient +
+                (amount - (amount * 5) / 100);
+        }
         uint256 balanceSender = balanceOf[sender];
         require(balanceSender >= amount, "underflow balance sender");
         balanceOf[sender] = balanceSender - amount;

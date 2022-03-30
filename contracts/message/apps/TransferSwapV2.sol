@@ -5,7 +5,7 @@ pragma solidity >=0.8.9;
 import "./SwapBase.sol";
 import "../../interfaces/IUniswapV2.sol";
 
-contract TransferSwapV2 is SwapBase {
+abstract contract TransferSwapV2 is SwapBase {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 

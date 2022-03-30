@@ -11,14 +11,15 @@ import "../framework/MessageReceiverApp.sol";
 import "../../interfaces/IWETH.sol";
 
 contract SwapBase is MessageSenderApp, MessageReceiverApp {
+    using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
     EnumerableSet.AddressSet internal supportedDEXes;
     mapping(uint64 => uint256) public dstCryptoFee;
 
     // erc20 wrap of gas token of this chain, eg. WETH
-    address public nativeWrap;
-    address public rubicTransit;
+    address immutable public nativeWrap;
+    address immutable public rubicTransit;
 
     // minimal amount of bridged token
     mapping(address => uint256) public minSwapAmount;
@@ -27,6 +28,14 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
     uint256 public feeRubic; // 1m is 100%
 
     uint64 nonce;
+
+    constructor(
+        address _nativeWrap,
+        address _rubicTransit
+    ){
+        nativeWrap = _nativeWrap;
+        rubicTransit = _rubicTransit;
+    }
 
     modifier onlyEOA() {
         require(msg.sender == tx.origin, "Not EOA");
@@ -94,6 +103,11 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
         Succeeded,
         Failed,
         Fallback
+    }
+
+    // returns an array of the supported DEXes
+    function getSupportedDEXes() external view returns (address[] memory) {
+        return supportedDEXes.values();
     }
 
     // returns address of first token for V3

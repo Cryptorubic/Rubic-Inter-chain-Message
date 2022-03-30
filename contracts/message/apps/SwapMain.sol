@@ -16,13 +16,13 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
     constructor(
         address _messageBus,
         address[] memory _supportedDEXes,
-        address _nativeWrap
-    ) {
+        address _nativeWrap,
+        address _rubicTransit
+    ) SwapBase(_nativeWrap, _rubicTransit) {
         messageBus = _messageBus;
         for (uint i=0; i < _supportedDEXes.length; i++) {
             supportedDEXes.add(_supportedDEXes[i]);
         }
-        nativeWrap = _nativeWrap;
         dstCryptoFee[5] = 10000000; //TODO: remove
         feeRubic = 1600; // 0.16%
     }
@@ -329,9 +329,5 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
             IERC20(_token).safeTransfer(msg.sender, _amount);
         }
         collectedFee[_token] -= _amount;
-    }
-
-    function setNativeWrap(address _nativeWrap) external onlyOwner {
-        nativeWrap = _nativeWrap;
     }
 }

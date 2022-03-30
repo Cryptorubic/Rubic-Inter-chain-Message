@@ -4,7 +4,7 @@ pragma solidity >=0.8.9;
 
 import "./SwapBase.sol";
 
-contract TransferSwapInch is SwapBase {
+abstract contract TransferSwapInch is SwapBase {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Address for address payable;
     using SafeERC20 for IERC20;
