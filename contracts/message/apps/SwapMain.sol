@@ -8,18 +8,22 @@ import "./TransferSwapInch.sol";
 import "./BridgeSwap.sol";
 
 contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwap {
+    using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
+
     event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status);
 
     constructor(
         address _messageBus,
-        address _supportedDex,
+        address[] memory _supportedDEXes,
         address _nativeWrap
     ) {
         messageBus = _messageBus;
-        supportedDex[_supportedDex] = true; // TODO delete supproted dexes
+        for (uint i=0; i < _supportedDEXes.length; i++) {
+            supportedDEXes.add(_supportedDEXes[i]);
+        }
         nativeWrap = _nativeWrap;
-        dstCryptoFee[5] = 10000000;
+        dstCryptoFee[5] = 10000000; //TODO: remove
         feeRubic = 1600; // 0.16%
     }
 

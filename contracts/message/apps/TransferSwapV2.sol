@@ -6,6 +6,7 @@ import "./SwapBase.sol";
 import "../../interfaces/IUniswapV2.sol";
 
 contract TransferSwapV2 is SwapBase {
+    using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
     event SwapRequestSentV2(
@@ -235,6 +236,10 @@ contract TransferSwapV2 is SwapBase {
         returns (bool ok, uint256 amountSpent, uint256 amountOut)
     {
         uint256 zero;
+
+        if (!supportedDEXes.contains(_swap.dex)) {
+            return (false, zero, zero);
+        }
 
         safeApprove(IERC20(_swap.path[0]), _amount, _swap.dex);
         try

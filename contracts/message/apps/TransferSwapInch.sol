@@ -5,6 +5,7 @@ pragma solidity >=0.8.9;
 import "./SwapBase.sol";
 
 contract TransferSwapInch is SwapBase {
+    using EnumerableSet for EnumerableSet.AddressSet;
     using Address for address payable;
     using SafeERC20 for IERC20;
 
@@ -217,7 +218,7 @@ contract TransferSwapInch is SwapBase {
         returns (bool ok, uint256 amountOut)
     {
         uint256 zero;
-        if (!supportedDex[_swap.dex]) {
+        if (!supportedDEXes.contains(_swap.dex)) {
             return (false, zero);
         }
         IERC20(_swap.path[0]).safeIncreaseAllowance(_swap.dex, _amount);
@@ -242,7 +243,7 @@ contract TransferSwapInch is SwapBase {
         returns (bool ok, uint256 amountOut)
     {
         uint256 zero;
-        if (!supportedDex[_swap.dex]) {
+        if (!supportedDEXes.contains(_swap.dex)) {
             return (false, zero);
         }
         IERC20(_swap.path[0]).safeIncreaseAllowance(_swap.dex, _amount);

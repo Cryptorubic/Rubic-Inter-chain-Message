@@ -4,6 +4,7 @@ pragma solidity >=0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../framework/MessageBusAddress.sol";
 import "../framework/MessageSenderApp.sol";
 import "../framework/MessageReceiverApp.sol";
@@ -11,7 +12,8 @@ import "../../interfaces/IWETH.sol";
 
 contract SwapBase is MessageSenderApp, MessageReceiverApp {
     using SafeERC20 for IERC20;
-    mapping(address => bool) supportedDex;
+
+    EnumerableSet.AddressSet internal supportedDEXes;
     mapping(uint64 => uint256) public dstCryptoFee;
 
     // erc20 wrap of gas token of this chain, eg. WETH

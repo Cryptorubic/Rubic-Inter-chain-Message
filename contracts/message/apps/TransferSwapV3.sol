@@ -6,6 +6,7 @@ import "./SwapBase.sol";
 import "../../interfaces/ISwapRouter.sol";
 
 contract TransferSwapV3 is SwapBase {
+    using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
     // emitted when requested dstChainId == srcChainId, no bridging
@@ -222,10 +223,11 @@ contract TransferSwapV3 is SwapBase {
         returns (bool ok, uint256 amountOut)
     {
         uint256 zero;
-        /*
-        if (!supportedDex[_swap.dex]) {
+
+        if (!supportedDEXes.contains(_swap.dex)) {
             return (false, zero);
-        }*/
+        }
+
         IERC20(address(_getFirstBytes20(_swap.path))).safeIncreaseAllowance(
             _swap.dex,
             _amount
