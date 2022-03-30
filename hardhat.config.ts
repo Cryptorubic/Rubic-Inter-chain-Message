@@ -37,7 +37,8 @@ module.exports = {
     hardhat: {
       chainId: 137,
       forking: {
-        url: `https://polygon-mainnet.infura.io/v3/${POLYGON_INFURA_KEY}`
+        url: `https://polygon-mainnet.infura.io/v3/${POLYGON_INFURA_KEY}`,
+        blockNumber: 26536793 // hardcode block number to increase performance of the local cache
       }
     },
     mainnet: {

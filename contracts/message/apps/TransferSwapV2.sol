@@ -3,7 +3,7 @@
 pragma solidity >=0.8.9;
 
 import "./SwapBase.sol";
-import "../../interfaces/IUniswapV2.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 abstract contract TransferSwapV2 is SwapBase {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -243,7 +243,7 @@ abstract contract TransferSwapV2 is SwapBase {
 
         safeApprove(IERC20(_swap.path[0]), _amount, _swap.dex);
         try
-            IUniswapV2(_swap.dex).swapExactTokensForTokens(
+            IUniswapV2Router02(_swap.dex).swapExactTokensForTokens(
                 _amount,
                 _swap.amountOutMinimum,
                 _swap.path,
