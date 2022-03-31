@@ -83,7 +83,7 @@ abstract contract BridgeSwap is SwapBase {
             nonce,
             _maxBridgeSlippage,
             message,
-            MessageSenderLib.BridgeType.Liquidity,
+            MsgDataTypes.BridgeSendType.Liquidity,
             _fee
         );
         emit BridgeRequestSent(id, _dstChainId, _amountIn, _srcBridgeToken);

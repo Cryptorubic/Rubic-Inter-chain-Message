@@ -206,7 +206,7 @@ abstract contract TransferSwapV3 is SwapBase {
             _nonce,
             _maxBridgeSlippage,
             message,
-            MessageSenderLib.BridgeType.Liquidity,
+            MsgDataTypes.BridgeSendType.Liquidity,
             _fee
         );
 

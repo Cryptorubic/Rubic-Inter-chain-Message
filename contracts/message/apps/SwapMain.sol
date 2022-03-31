@@ -41,8 +41,9 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         address _token,
         uint256 _amount,
         uint64 _srcChainId,
-        bytes memory _message
-    ) external payable override returns (bool) {
+        bytes memory _message,
+        address
+    ) external payable override returns (ExecutionStatus) {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
         bytes32 id = _computeSwapRequestId(
             m.receiver,
@@ -62,7 +63,7 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
             _executeDstSwapInch(_token, _amount, id, m);
         }
         // always return true since swap failure is already handled in-place
-        return true;
+        return ExecutionStatus.Success;
     }
 
         /**
@@ -75,8 +76,9 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         address _token,
         uint256 _amount,
         uint64 _srcChainId,
-        bytes memory _message
-    ) external payable override returns (bool) {
+        bytes memory _message,
+        address
+    ) external payable override returns (ExecutionStatus) {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
 
         bytes32 id = _computeSwapRequestId(
@@ -98,14 +100,15 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         emit SwapRequestDone(id, 0, SwapStatus.Failed);
         // always return false to mark this transfer as failed since if this function is called then there nothing more
         // we can do in this app as the swap failures are already handled in executeMessageWithTransfer
-        return false;
+        return ExecutionStatus.Fail;
     }
 
     function executeMessageWithTransferRefund(
         address _token,
         uint256 _amount,
-        bytes calldata _message
-    ) external payable override returns (bool) {
+        bytes calldata _message,
+        address
+    ) external payable override returns (ExecutionStatus) {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
         if (m.swap.version == SwapVersion.v3) {
             _sendToken(
@@ -122,7 +125,7 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
                 m.nativeOut
             );
         }
-        return true;
+        return ExecutionStatus.Success;
     }
 
     function _executeDstSwapInch(

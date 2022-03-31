@@ -207,7 +207,7 @@ abstract contract TransferSwapInch is SwapBase {
             _nonce,
             _maxBridgeSlippage,
             message,
-            MessageSenderLib.BridgeType.Liquidity,
+            MsgDataTypes.BridgeSendType.Liquidity,
             _fee
         );
         emit SwapRequestSentInch(id, _dstChainId, _amountIn, _srcSwap.path[0]);

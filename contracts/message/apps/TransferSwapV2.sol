@@ -225,7 +225,7 @@ abstract contract TransferSwapV2 is SwapBase {
             _nonce,
             _maxBridgeSlippage,
             message,
-            MessageSenderLib.BridgeType.Liquidity,
+            MsgDataTypes.BridgeSendType.Liquidity,
             _fee
         );
         emit SwapRequestSentV2(id, _dstChainId, _amountIn, _srcSwap.path[0]);
