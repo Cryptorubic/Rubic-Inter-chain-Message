@@ -3,7 +3,7 @@ import UniV2JSON from '@uniswap/v2-periphery/build/UniswapV2Router02.json';
 import UniV3JSON from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json';
 import { ethers } from 'hardhat';
 import { Wallet } from '@ethersproject/wallet';
-import { deadline } from './consts';
+import { DEADLINE } from './consts';
 
 export const getRouterV2 = async function (
     wallet: Wallet,
@@ -29,7 +29,7 @@ export const createPoolV2 = async function (
         ethers.utils.parseEther('100'),
         ethers.utils.parseEther('100'),
         await router.signer.getAddress(),
-        deadline
+        DEADLINE
     );
 
     return router;

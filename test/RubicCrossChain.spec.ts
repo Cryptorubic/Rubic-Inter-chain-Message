@@ -1,14 +1,16 @@
-import {ethers, network, waffle} from 'hardhat';
-import {swapContractFixtureInFork} from './shared/fixtures';
-import {Wallet} from '@ethersproject/wallet';
-import {SwapMain, TestERC20, WETH9} from '../typechain-types';
-import {expect} from 'chai';
-import {AbiCoder} from '@ethersproject/abi';
-import {deadline} from './shared/consts';
-import {BigNumberish, ContractTransaction} from 'ethers';
-import {getRouterV2} from './shared/utils';
+import { ethers, network, waffle } from 'hardhat';
+import { swapContractFixtureInFork, swapContractFixtureWithLocalToken } from './shared/fixtures';
+import { Wallet } from '@ethersproject/wallet';
+import { SwapMain, TestERC20, WETH9 } from '../typechain-types';
+import { expect } from 'chai';
+import { AbiCoder } from '@ethersproject/abi';
+import { DEADLINE, DST_CHAIN_ID } from './shared/consts';
+import { BigNumberish, ContractTransaction } from 'ethers';
+import { getRouterV2 } from './shared/utils';
+import {parseUnits} from "ethers/lib/utils";
 
 const createFixtureLoader = waffle.createFixtureLoader;
+const defaultAmountIn = ethers.utils.parseEther('1');
 
 const envConfig = require('dotenv').config();
 const { ROUTERS_POLYGON, NATIVE_POLYGON, BUS_POLYGON } = envConfig.parsed || {};
@@ -25,20 +27,20 @@ describe('RubicCrossChain', () => {
 
     async function callTransferWithSwapV2Native(
         amountOutMinimum: BigNumberish,
-        { receiver, amountIn, cBridgePart, dstChainID, srcDEX, srcPath, nativeOut, nativeIn } = {
-            receiver: null,
-            amountIn: ethers.utils.parseEther('1'),
-            cBridgePart: '0',
-            dstChainID: 5,
-            srcDEX: router,
-            srcPath: [wnative.address, token.address],
-            nativeOut: false,
-            nativeIn: null
-        }
-    ) {
+        {
+            receiver = null,
+            amountIn = defaultAmountIn,
+            cBridgePart = '0',
+            dstChainID = DST_CHAIN_ID,
+            srcDEX = router,
+            srcPath = [wnative.address, token.address],
+            nativeOut = false,
+            nativeIn = null
+        } = {}
+    ): Promise<ContractTransaction> {
         const cryptoFee = await swapMain.dstCryptoFee(dstChainID);
 
-        const tx = await swapMain.transferWithSwapV2Native(
+        return swapMain.transferWithSwapV2Native(
             receiver === null ? await swapMain.signer.getAddress() : receiver,
             amountIn,
             cBridgePart,
@@ -46,7 +48,7 @@ describe('RubicCrossChain', () => {
             {
                 dex: srcDEX,
                 path: srcPath,
-                deadline,
+                deadline: DEADLINE,
                 amountOutMinimum
             },
             {
@@ -54,15 +56,19 @@ describe('RubicCrossChain', () => {
                 version: 1,
                 path: [wnative.address, token.address],
                 dataInchOrPathV3: '0x',
-                deadline,
+                deadline: DEADLINE,
                 amountOutMinimum: ethers.utils.parseEther('10')
             },
             '10',
             nativeOut,
             { value: nativeIn === null ? amountIn.add(cryptoFee) : nativeIn }
         );
+    }
 
-        return tx;
+    async function getAmountOutMin(amountIn = defaultAmountIn) {
+        const routerV2 = await getRouterV2(wallet, router);
+
+        return (await routerV2.getAmountsOut(amountIn, [wnative.address, token.address]))[1];
     }
 
     before('create fixture loader', async () => {
@@ -104,21 +110,31 @@ describe('RubicCrossChain', () => {
     });
 
     describe('#WithSwapTests', () => {
-        it.only('transferWithSwapV2Native', async () => {
-            const routerV2 = await getRouterV2(wallet, router);
+        describe('#transferWithSwapV2Native success', () => {
+            it('Rubic only', async () => {
+                const amountOutMin = await getAmountOutMin();
 
-            const amountOutMin = (
-                await routerV2.getAmountsOut(ethers.utils.parseEther('1'), [
-                    wnative.address,
-                    token.address
-                ])
-            )[1];
+                await expect(callTransferWithSwapV2Native(amountOutMin))
+                    .to.emit(swapMain, 'TransferTokensToOtherBlockchainUser')
+                    .withArgs(amountOutMin, defaultAmountIn);
 
-            await expect(callTransferWithSwapV2Native(amountOutMin)).to.emit(
-                swapMain.address,
-                'TransferTokensToOtherBlockchainUser'
-            );
-            expect(await token.balanceOf(swapMain.address)).to.be.eq(amountOutMin);
+                expect(await token.balanceOf(swapMain.address)).to.be.eq(amountOutMin);
+            });
+            it.only('Celer only', async () => {
+                const amountOutMin = await getAmountOutMin();
+
+                await expect(callTransferWithSwapV2Native(amountOutMin, { cBridgePart: '1000000' }))
+                    .to.emit(swapMain, 'SwapRequestSentV2')
+                    .withArgs(
+                        ethers.constants.HashZero,
+                        DST_CHAIN_ID,
+                        defaultAmountIn,
+                        wnative.address
+                    );
+            });
+        });
+        describe('#transferWithSwapV2', () => {
+            
         });
     });
 });
