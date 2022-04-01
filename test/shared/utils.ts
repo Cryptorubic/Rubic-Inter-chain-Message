@@ -19,17 +19,19 @@ export const getRouterV2 = async function (
 export const createPoolV2 = async function (
     wallet: Wallet,
     routerAddress: string,
-    token: string
+    token: string,
+    tokenAmount = ethers.utils.parseEther('100')
 ): Promise<IUniswapV2Router02> {
     const router = await getRouterV2(wallet, routerAddress);
 
     await router.addLiquidityETH(
         token,
-        ethers.utils.parseEther('100'),
-        ethers.utils.parseEther('100'),
+        tokenAmount,
+        tokenAmount,
         ethers.utils.parseEther('100'),
         await router.signer.getAddress(),
-        DEADLINE
+        DEADLINE,
+        { value: ethers.utils.parseEther('100') }
     );
 
     return router;

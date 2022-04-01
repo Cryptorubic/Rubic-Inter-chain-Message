@@ -73,7 +73,7 @@ abstract contract BridgeSwap is SwapBase {
             _dstChainId,
             message
         );
-        (_amountIn, _fee) = _sendFee(_srcBridgeToken, _amountIn, _fee, _dstChainId);
+        _fee = _calculateCryptoFee(_fee, _dstChainId);
 
         sendMessageWithTransfer(
             _receiver,

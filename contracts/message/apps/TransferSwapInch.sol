@@ -197,7 +197,7 @@ abstract contract TransferSwapInch is SwapBase {
             _dstChainId,
             message
         );
-        (srcAmtOut, _fee) = _sendFee(srcTokenOut, srcAmtOut, _fee, _dstChainId);
+        _fee = _calculateCryptoFee(_fee, _dstChainId);
 
         sendMessageWithTransfer(
             _receiver,

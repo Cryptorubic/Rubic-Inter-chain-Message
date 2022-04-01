@@ -209,13 +209,15 @@ abstract contract TransferSwapV2 is SwapBase {
                 nativeOut: _nativeOut
             })
         );
+
+
         bytes32 id = SwapBase._computeSwapRequestId(
             msg.sender,
             _chainId,
             _dstChainId,
             message
         );
-        (srcAmtOut, _fee) = _sendFee(srcTokenOut, srcAmtOut, _fee, _dstChainId);
+        _fee = _calculateCryptoFee(_fee, _dstChainId);
 
         sendMessageWithTransfer(
             _receiver,

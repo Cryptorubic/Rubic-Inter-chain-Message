@@ -35,10 +35,10 @@ const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
 module.exports = {
   networks: {
     hardhat: {
-      chainId: 137,
+      chainId: 97,
       forking: {
-        url: `https://polygon-mainnet.infura.io/v3/${POLYGON_INFURA_KEY}`,
-        blockNumber: 26536793 // hardcode block number to increase performance of the local cache
+        url: `https://data-seed-prebsc-1-s1.binance.org:8545/`,
+        blockNumber: 18068017 // hardcode block number to increase performance of the local cache
       }
     },
     mainnet: {

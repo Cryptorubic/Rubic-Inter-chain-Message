@@ -27,7 +27,7 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
     mapping(address => uint256) public collectedFee;
     uint256 public feeRubic; // 1m is 100%
 
-    uint64 nonce;
+    uint64 public nonce;
 
     constructor(
         address _nativeWrap,
@@ -145,15 +145,13 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
             );
     }
 
-    function _sendFee(address _bridgeToken, uint256 _srcAmtOut, uint256 _fee, uint64 _dstChainId)
+    function _calculateCryptoFee(uint256 _fee, uint64 _dstChainId)
     internal
-    returns (uint256 updatedAmount, uint256 updatedFee) {
+    returns (uint256 updatedFee) {
         require(_fee > dstCryptoFee[_dstChainId], "too few crypto fee");
-        uint256 _srcAmtOutAfterRubic = _srcAmtOut - (_srcAmtOut * (feeRubic / 1000000));
         uint256 _feeAfterRubic = _fee - dstCryptoFee[_dstChainId];
-        collectedFee[_bridgeToken] += _srcAmtOut * (feeRubic / 1000000);
         collectedFee[nativeWrap] += dstCryptoFee[_dstChainId];
-        return (_srcAmtOutAfterRubic, _feeAfterRubic);
+        return (_feeAfterRubic);
     }
 
     function safeApprove(IERC20 tokenIn, uint256 amount, address to) internal {

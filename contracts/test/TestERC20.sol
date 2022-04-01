@@ -16,6 +16,10 @@ contract TestERC20 {
         mint(msg.sender, 100000000000 ether);
     }
 
+    function decimals() external pure returns(uint256){
+        return 18;
+    }
+
     function mint(address to, uint256 amount) public {
         uint256 balanceNext = balanceOf[to] + amount;
         require(balanceNext >= amount, "overflow balance");
