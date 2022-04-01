@@ -61,7 +61,7 @@ describe('RubicCrossChain', () => {
             },
             '10',
             nativeOut,
-            { value: nativeIn === null ? amountIn.add(cryptoFee) : nativeIn }
+            { value: nativeIn === null ? amountIn.add(cryptoFee).add(ethers.utils.parseEther('2')) : nativeIn }
         );
     }
 
@@ -240,10 +240,10 @@ describe('RubicCrossChain', () => {
 
                 expect(await token.balanceOf(swapMain.address)).to.be.eq(amountOutMin);
             });
-            it('Should swap native and transfer through Celer only', async () => {
+            it.only('Should swap native and transfer through Celer only', async () => {
                 const { testMessagesContract } = await loadFixture(testFixture);
 
-                const { message } = await getMessageAndID(
+                const { ID } = await getMessageAndID(
                     testMessagesContract,
                     (await swapMain.nonce()).add('1')
                 );
@@ -256,12 +256,7 @@ describe('RubicCrossChain', () => {
                     })
                 )
                     .to.emit(swapMain, 'SwapRequestSentV2')
-                    .withArgs(
-                        ethers.constants.HashZero,
-                        DST_CHAIN_ID,
-                        defaultAmountIn,
-                        wnative.address
-                    );
+                    .withArgs(ID, DST_CHAIN_ID, defaultAmountIn, wnative.address);
             });
         });
         describe('#transferWithSwapV2', () => {
@@ -283,7 +278,7 @@ describe('RubicCrossChain', () => {
 
                 expect(await token.balanceOf(swapMain.address)).to.be.eq(amountOutMin);
             });
-            it.only('Should swap token and transfer through Сeler only', async () => {
+            it('Should swap token and transfer through Сeler only', async () => {
                 await swapToken.approve(swapMain.address, ethers.constants.MaxUint256);
 
                 const amountOutMin = await getAmountOutMin(defaultAmountIn, [
@@ -293,11 +288,10 @@ describe('RubicCrossChain', () => {
 
                 const { testMessagesContract } = await loadFixture(testFixture);
 
-                const { message, ID } = await getMessageAndID(
+                const { ID } = await getMessageAndID(
                     testMessagesContract,
                     (await swapMain.nonce()).add('1')
                 );
-                console.log(message);
 
                 await expect(
                     callTransferWithSwapV2(amountOutMin, {
