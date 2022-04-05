@@ -1,18 +1,24 @@
-import {ethers, network, waffle} from 'hardhat';
-import {swapContractFixtureInFork, testFixture} from './shared/fixtures';
-import {Wallet} from '@ethersproject/wallet';
-import {SwapMain, TestERC20, TestMessages, WETH9} from '../typechain-types';
-import {expect} from 'chai';
-import {AbiCoder} from '@ethersproject/abi';
-import {DEADLINE, DST_CHAIN_ID} from './shared/consts';
-import {BigNumber, BigNumber as BN, BigNumberish, BytesLike, ContractTransaction} from 'ethers';
-import {createPoolV2, getRouterV2} from './shared/utils';
+import { ethers, network, waffle } from 'hardhat';
+import { swapContractFixtureInFork, testFixture } from './shared/fixtures';
+import { Wallet } from '@ethersproject/wallet';
+import { SwapMain, TestERC20, TestMessages, WETH9 } from '../typechain-types';
+import { expect } from 'chai';
+import { AbiCoder } from '@ethersproject/abi';
+import { DEADLINE, DST_CHAIN_ID } from './shared/consts';
+import { BigNumberish, ContractTransaction } from 'ethers';
+import { getRouterV2 } from './shared/utils';
 
 const createFixtureLoader = waffle.createFixtureLoader;
 const defaultAmountIn = ethers.utils.parseEther('1');
 
 const envConfig = require('dotenv').config();
-const { ROUTERS_POLYGON, NATIVE_POLYGON, BUS_POLYGON } = envConfig.parsed || {};
+const {
+    ROUTERS_BSC_TESTNET: TEST_ROUTERS,
+    NATIVE_BSC_TESTNET: TEST_NATIVE,
+    BUS_BSC_TESTNET: TEST_BUS,
+    TRANSIT_BSC_TESTNET: TEST_TRANSIT,
+    SWAP_TOKEN_BSC_TESTNET: TEST_SWAP_TOKEN
+} = envConfig.parsed || {};
 
 describe('RubicCrossChain', () => {
     let wallet: Wallet, other: Wallet;
@@ -41,7 +47,7 @@ describe('RubicCrossChain', () => {
         const cryptoFee = await swapMain.dstCryptoFee(dstChainID);
 
         return swapMain.transferWithSwapV2Native(
-            receiver === null ? await swapMain.signer.getAddress() : receiver,
+            receiver === null ? wallet.address : receiver,
             amountIn,
             cBridgePart,
             dstChainID,
@@ -61,7 +67,12 @@ describe('RubicCrossChain', () => {
             },
             '10',
             nativeOut,
-            { value: nativeIn === null ? amountIn.add(cryptoFee).add(ethers.utils.parseEther('2')) : nativeIn }
+            {
+                value:
+                    nativeIn === null
+                        ? amountIn.add(cryptoFee).add(ethers.utils.parseEther('2'))
+                        : nativeIn
+            }
         );
     }
 
@@ -211,26 +222,22 @@ describe('RubicCrossChain', () => {
     });
 
     it('constructor initializes', async () => {
-        expect(await swapMain.nativeWrap()).to.eq(NATIVE_POLYGON);
+        expect(await swapMain.nativeWrap()).to.eq(TEST_NATIVE);
         expect(await swapMain.rubicTransit()).to.eq(token.address);
-        expect(await swapMain.messageBus()).to.eq(BUS_POLYGON);
+        expect(await swapMain.messageBus()).to.eq(TEST_BUS);
 
-        const routers = ROUTERS_POLYGON.split(',');
+        const routers = TEST_ROUTERS.split(',');
         expect(await swapMain.getSupportedDEXes()).to.deep.eq(routers);
     });
 
     describe('#WithSwapTests', () => {
-        describe('#transferWithSwapV2Native', () => {
-            beforeEach('add liquidity transit with native', async () => {
-                await token.approve(router, ethers.constants.MaxUint256);
-                await createPoolV2(
-                    wallet,
-                    router,
-                    token.address,
-                    BN.from('100' + '0'.repeat(Number(await token.decimals())))
-                );
-            });
+        let testMessagesContract: TestMessages;
 
+        before('deploy tests fixture', async () => {
+            const testContractsFixture = await loadFixture(testFixture);
+            testMessagesContract = testContractsFixture.testMessagesContract;
+        });
+        describe('#transferWithSwapV2Native', () => {
             it('Should swap native and transfer through Rubic only', async () => {
                 const amountOutMin = await getAmountOutMin();
 
@@ -240,9 +247,7 @@ describe('RubicCrossChain', () => {
 
                 expect(await token.balanceOf(swapMain.address)).to.be.eq(amountOutMin);
             });
-            it.only('Should swap native and transfer through Celer only', async () => {
-                const { testMessagesContract } = await loadFixture(testFixture);
-
+            it('Should swap native and transfer through Celer only', async () => {
                 const { ID } = await getMessageAndID(
                     testMessagesContract,
                     (await swapMain.nonce()).add('1')
@@ -252,7 +257,8 @@ describe('RubicCrossChain', () => {
 
                 await expect(
                     callTransferWithSwapV2Native(amountOutMin, {
-                        cBridgePart: '1000000'
+                        cBridgePart: '1000000',
+                        srcPath: [wnative.address, token.address]
                     })
                 )
                     .to.emit(swapMain, 'SwapRequestSentV2')
@@ -285,8 +291,6 @@ describe('RubicCrossChain', () => {
                     swapToken.address,
                     token.address
                 ]);
-
-                const { testMessagesContract } = await loadFixture(testFixture);
 
                 const { ID } = await getMessageAndID(
                     testMessagesContract,

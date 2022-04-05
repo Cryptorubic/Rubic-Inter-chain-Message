@@ -3,9 +3,7 @@ pragma solidity >=0.8.9;
 import '../message/apps/SwapBase.sol';
 
 contract TestMessages is SwapBase {
-    constructor() SwapBase(address(this), address(this)) {
-
-    }
+    constructor() SwapBase(address(this), address(this)) {}
 
     function getMessage(
         SwapInfoDest memory _dstSwap,
@@ -14,12 +12,7 @@ contract TestMessages is SwapBase {
         bool _nativeOut
     ) external pure returns (bytes memory) {
         bytes memory message = abi.encode(
-            SwapRequestDest({
-                swap: _dstSwap,
-                receiver: _receiver,
-                nonce: _nonce,
-                nativeOut: _nativeOut
-            })
+            SwapRequestDest({swap: _dstSwap, receiver: _receiver, nonce: _nonce, nativeOut: _nativeOut})
         );
 
         return message;
@@ -32,21 +25,11 @@ contract TestMessages is SwapBase {
         SwapInfoDest memory _dstSwap,
         uint64 _nonce,
         bool _nativeOut
-    ) external view returns (bytes32){
+    ) external view returns (bytes32) {
         bytes memory message = abi.encode(
-            SwapRequestDest({
-                swap: _dstSwap,
-                receiver: _receiver,
-                nonce: _nonce,
-                nativeOut: _nativeOut
-            })
+            SwapRequestDest({swap: _dstSwap, receiver: _receiver, nonce: _nonce, nativeOut: _nativeOut})
         );
-        bytes32 id = SwapBase._computeSwapRequestId(
-            _receiver,
-            _chainId,
-            _dstChainId,
-            message
-        );
+        bytes32 id = SwapBase._computeSwapRequestId(_receiver, _chainId, _dstChainId, message);
 
         return id;
     }

@@ -4,7 +4,7 @@ import { TestERC20 } from '../../typechain-types';
 import { SwapMain } from '../../typechain-types';
 import { WETH9 } from '../../typechain-types';
 import { TestMessages } from '../../typechain-types';
-import { MessageBusSender } from "../../typechain-types";
+import { MessageBusSender } from '../../typechain-types';
 import TokenJSON from '../../artifacts/contracts/test/TestERC20.sol/TestERC20.json';
 import WETHJSON from '../../artifacts/contracts/test/WETH9.sol/WETH9.json';
 import MessageBusJSON from '../../artifacts/contracts/message/messagebus/MessageBusSender.sol/MessageBusSender.json';

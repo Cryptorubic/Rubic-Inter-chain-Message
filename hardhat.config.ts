@@ -90,6 +90,9 @@ module.exports = {
   solidity: {
     compilers: [DEFAULT_COMPILER_SETTINGS],
   },
+  mocha: {
+    timeout: 1000000
+  },
   contractSizer: {
     alphaSort: false,
     disambiguatePaths: true,
