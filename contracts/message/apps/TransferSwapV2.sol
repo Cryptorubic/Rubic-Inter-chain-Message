@@ -43,14 +43,14 @@ abstract contract TransferSwapV2 is SwapBase {
         IWETH(nativeWrap).deposit{value: _amountIn}();
 
         _splitTransferWithSwapV2(
-            _receiver,
+            SplitSwapInfo(_receiver,
             _amountIn,
             _cBridgePart,
             _dstChainId,
             _srcSwap,
             _dstSwap,
             _maxBridgeSlippage,
-            _nativeOut
+            _nativeOut)
         );
     }
 
@@ -59,8 +59,8 @@ abstract contract TransferSwapV2 is SwapBase {
         uint256 _amountIn,
         uint256 _cBridgePart,
         uint64 _dstChainId,
-        SwapInfoV2 calldata _srcSwap,
-        SwapInfoDest calldata _dstSwap,
+        SwapInfoV2 memory _srcSwap,
+        SwapInfoDest memory _dstSwap,
         uint32 _maxBridgeSlippage,
         bool _nativeOut
     ) external payable onlyEOA {
@@ -71,69 +71,75 @@ abstract contract TransferSwapV2 is SwapBase {
         );
 
         _splitTransferWithSwapV2(
-            _receiver,
+            SplitSwapInfo(_receiver,
             _amountIn,
             _cBridgePart,
             _dstChainId,
             _srcSwap,
             _dstSwap,
             _maxBridgeSlippage,
-            _nativeOut
+            _nativeOut)
         );
     }
 
+    struct SplitSwapInfo {
+        address _receiver;
+        uint256 _amountIn;
+        uint256 _cBridgePart;
+        uint64 _dstChainId;
+        SwapInfoV2 _srcSwap;
+        SwapInfoDest _dstSwap;
+        uint32 _maxBridgeSlippage;
+        bool _nativeOut;
+    }
+
     function _splitTransferWithSwapV2(
-        address _receiver,
-        uint256 _amountIn,
-        uint256 _cBridgePart,
-        uint64 _dstChainId,
-        SwapInfoV2 calldata _srcSwap,
-        SwapInfoDest calldata _dstSwap,
-        uint32 _maxBridgeSlippage,
-        bool _nativeOut
+        SplitSwapInfo memory swapInfo
     ) private {
         (uint64 chainId, address srcTokenOut, uint256 srcAmtIn, uint256 srcAmtOut) = _swapV2(
-            _amountIn,
-            _dstChainId,
-            _srcSwap
+            swapInfo._amountIn,
+            swapInfo._dstChainId,
+            swapInfo._srcSwap
         );
 
-        if (_cBridgePart == 1e6){
+        uint256 _fee = _calculateCryptoFee(msg.value - swapInfo._amountIn, swapInfo._dstChainId);
+
+        if (swapInfo._cBridgePart == 1e6){
             _crossChainTransferWithSwapV2(
-                _receiver,
-                _amountIn,
+                swapInfo._receiver,
+                swapInfo._amountIn,
                 chainId,
-                _dstChainId,
-                _srcSwap,
-                _dstSwap,
-                _maxBridgeSlippage,
+                swapInfo._dstChainId,
+                swapInfo._srcSwap,
+                swapInfo._dstSwap,
+                swapInfo._maxBridgeSlippage,
                 nonce,
-                _nativeOut,
-                msg.value,
+                swapInfo._nativeOut,
+                _fee,
                 srcTokenOut,
                 srcAmtOut
             );
-        } else if (_cBridgePart == 0){
+        } else if (swapInfo._cBridgePart == 0){
             _afterRubicSwap(
                 srcTokenOut,
                 srcAmtIn,
                 srcAmtOut,
-                _nativeOut
+                swapInfo._nativeOut
             );
         } else {
-            uint256 _cBridgeAmount = srcAmtOut * _cBridgePart / 1e6;
+            uint256 _cBridgeAmount = srcAmtOut * swapInfo._cBridgePart / 1e6;
 
             _crossChainTransferWithSwapV2(
-                _receiver,
-                _amountIn,
+                swapInfo._receiver,
+                swapInfo._amountIn,
                 chainId,
-                _dstChainId,
-                _srcSwap,
-                _dstSwap,
-                _maxBridgeSlippage,
+                swapInfo._dstChainId,
+                swapInfo._srcSwap,
+                swapInfo._dstSwap,
+                swapInfo._maxBridgeSlippage,
                 nonce,
-                _nativeOut,
-                msg.value,
+                swapInfo._nativeOut,
+                _fee,
                 srcTokenOut,
                 _cBridgeAmount
             );
@@ -142,7 +148,7 @@ abstract contract TransferSwapV2 is SwapBase {
                 srcTokenOut,
                 srcAmtIn - _cBridgeAmount,
                 srcAmtOut,
-                _nativeOut
+                swapInfo._nativeOut
             );
         }
     }
@@ -210,14 +216,12 @@ abstract contract TransferSwapV2 is SwapBase {
             })
         );
 
-
         bytes32 id = SwapBase._computeSwapRequestId(
             msg.sender,
             _chainId,
             _dstChainId,
             message
         );
-        _fee = _calculateCryptoFee(_fee, _dstChainId);
 
         sendMessageWithTransfer(
             _receiver,
