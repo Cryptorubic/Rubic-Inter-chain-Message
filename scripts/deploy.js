@@ -15,11 +15,13 @@ async function main() {
   // USDC token address in BSC: 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
   // SUSHI: 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506
 
+  /*
   const CrossChainSwapDeploy = await CrossChainSwap.deploy(
       '0x223fB0CeB2C6e5310264EFe38151d7D083db91f1',
       '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506',
       '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'
   );
+  */
 
   // MATIC Polygon 137
   // MessageBus 0x265B25e22bcd7f10a5bD6E6410F10537Cc7567e8
@@ -41,7 +43,14 @@ async function main() {
   // USDC token address in BSC: 0x9744ae566c64B6B6f7F9A4dD50f7496Df6Fef990
   // SUSHI: 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506
 
-  // const CrossChainSwapDeploy = await CrossChainSwap.deploy('0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA', '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506', '0xCe7F7c709E8c74D8ad069Ed28abF25ddC43b32a9');
+  const CrossChainSwapDeploy = await CrossChainSwap.deploy(
+      '0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA',
+      ['0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506','0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3'],
+      '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd',
+      ['0x5471ea8f739dd37e9b81be9c5c77754d8aa953e4',
+          '0x7d43AABC515C356145049227CeE54B608342c0ad',
+          '0xE0dfD58A528085912a03C4d093905707FC4EDac7']
+  );
 
   // GOERLI TEST 5
   // MessageBus 0x942E8e0e4b021F55b89660c886146e0Ec57F4b5B
@@ -69,9 +78,12 @@ async function main() {
   await hre.run("verify:verify", {
     address: CrossChainSwapDeploy.address,
     constructorArguments: [
-      '0x223fB0CeB2C6e5310264EFe38151d7D083db91f1',
-      '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506',
-      '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c' // BSC
+      '0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA',
+      ['0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506','0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3'],
+      '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd',
+      ['0x5471ea8f739dd37e9b81be9c5c77754d8aa953e4',
+          '0x7d43AABC515C356145049227CeE54B608342c0ad',
+          '0xE0dfD58A528085912a03C4d093905707FC4EDac7']
     ],
   });
 }

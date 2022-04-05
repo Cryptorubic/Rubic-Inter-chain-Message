@@ -12,7 +12,16 @@ const createFixtureLoader = waffle.createFixtureLoader;
 const defaultAmountIn = ethers.utils.parseEther('1');
 
 const envConfig = require('dotenv').config();
-const { ROUTERS_POLYGON, NATIVE_POLYGON, BUS_POLYGON } = envConfig.parsed || {};
+const {
+    ROUTERS_POLYGON,
+    NATIVE_POLYGON,
+    BUS_POLYGON,
+    NATIVE_BSC_TESTNET,
+    TRANSIT_BSC_TESTNET,
+    SWAP_TOKEN_BSC_TESTNET,
+    ROUTERS_BSC_TESTNET,
+    BUS_BSC_TESTNET
+} = envConfig.parsed || {};
 
 describe('RubicCrossChain', () => {
     let wallet: Wallet, other: Wallet;
@@ -211,12 +220,12 @@ describe('RubicCrossChain', () => {
     });
 
     it('constructor initializes', async () => {
-        expect(await swapMain.nativeWrap()).to.eq(NATIVE_POLYGON);
+        expect(await swapMain.nativeWrap()).to.eq(0x094616F0BdFB0b526bD735Bf66Eca0Ad254ca81F);
         expect(await swapMain.rubicTransit()).to.eq(token.address);
-        expect(await swapMain.messageBus()).to.eq(BUS_POLYGON);
+        expect(await swapMain.messageBus()).to.eq(0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA);
 
         const routers = ROUTERS_POLYGON.split(',');
-        expect(await swapMain.getSupportedDEXes()).to.deep.eq(routers);
+        expect(await swapMain.getSupportedDEXes()).to.deep.eq(ROUTERS_BSC_TESTNET);
     });
 
     describe('#WithSwapTests', () => {

@@ -17,10 +17,10 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         address _messageBus,
         address[] memory _supportedDEXes,
         address _nativeWrap,
-        address _rubicTransit
+        address[] memory _rubicTransit
     ) SwapBase(_nativeWrap, _rubicTransit) {
         messageBus = _messageBus;
-        for (uint i=0; i < _supportedDEXes.length; i++) {
+        for (uint256 i=0; i < _supportedDEXes.length; i++) {
             supportedDEXes.add(_supportedDEXes[i]);
         }
         dstCryptoFee[5] = 10000000; //TODO: remove

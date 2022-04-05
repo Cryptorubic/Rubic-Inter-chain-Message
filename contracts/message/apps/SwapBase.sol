@@ -19,7 +19,7 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
 
     // erc20 wrap of gas token of this chain, eg. WETH
     address immutable public nativeWrap;
-    address immutable public rubicTransit;
+    EnumerableSet.AddressSet internal rubicTransit;
 
     // minimal amount of bridged token
     mapping(address => uint256) public minSwapAmount;
@@ -31,10 +31,12 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
 
     constructor(
         address _nativeWrap,
-        address _rubicTransit
+        address[] memory _rubicTransit
     ){
         nativeWrap = _nativeWrap;
-        rubicTransit = _rubicTransit;
+        for (uint256 i=0; i < _rubicTransit.length; i++) {
+            rubicTransit.add(_rubicTransit[i]);
+        }
     }
 
     modifier onlyEOA() {
@@ -108,6 +110,10 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
     // returns an array of the supported DEXes
     function getSupportedDEXes() external view returns (address[] memory) {
         return supportedDEXes.values();
+    }
+
+    function getRubicTransit() external view returns (address[] memory) {
+        return rubicTransit.values();
     }
 
     // returns address of first token for V3
