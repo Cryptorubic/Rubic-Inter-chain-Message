@@ -16,9 +16,10 @@ async function main() {
   // SUSHI: 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506
 
   const CrossChainSwapDeploy = await CrossChainSwap.deploy(
-      '0x223fB0CeB2C6e5310264EFe38151d7D083db91f1',
-      '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506',
-      '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'
+      '0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA',
+      ['0x9ac64cc6e4415144c455bd8e4837fea55603e5c3'],
+      '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd',
+      '0x7d43AABC515C356145049227CeE54B608342c0ad'
   );
 
   // MATIC Polygon 137
@@ -69,9 +70,10 @@ async function main() {
   await hre.run("verify:verify", {
     address: CrossChainSwapDeploy.address,
     constructorArguments: [
-      '0x223fB0CeB2C6e5310264EFe38151d7D083db91f1',
-      '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506',
-      '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c' // BSC
+      '0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA',
+      ['0x9ac64cc6e4415144c455bd8e4837fea55603e5c3'],
+      '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd',
+      '0x7d43AABC515C356145049227CeE54B608342c0ad'
     ],
   });
 }

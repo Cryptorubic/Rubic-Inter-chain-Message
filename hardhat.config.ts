@@ -38,7 +38,7 @@ module.exports = {
       chainId: 97,
       forking: {
         url: `https://data-seed-prebsc-1-s1.binance.org:8545/`,
-        blockNumber: 18068017 // hardcode block number to increase performance of the local cache
+        blockNumber: 18184083 // hardcode block number to increase performance of the local cache
       }
     },
     mainnet: {

@@ -11,6 +11,7 @@ import "../../interfaces/IPeggedTokenBridge.sol";
 import "../../interfaces/IPeggedTokenBridgeV2.sol";
 import "../interfaces/IMessageBus.sol";
 import "./MsgDataTypes.sol";
+import 'hardhat/console.sol';
 
 library MessageSenderLib {
     using SafeERC20 for IERC20;
@@ -148,6 +149,11 @@ library MessageSenderLib {
         bytes32 transferId = keccak256(
             abi.encodePacked(address(this), _receiver, _token, _amount, _dstChainId, _nonce, uint64(block.chainid))
         );
+        console.log(_receiver);
+        console.log(_dstChainId);
+        console.log(bridge);
+        console.logBytes32(transferId);
+        console.logBytes(_message);
         IMessageBus(_messageBus).sendMessageWithTransfer{value: _fee}(
             _receiver,
             _dstChainId,
