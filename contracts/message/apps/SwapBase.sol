@@ -2,13 +2,13 @@
 
 pragma solidity >=0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "../framework/MessageBusAddress.sol";
-import "../framework/MessageSenderApp.sol";
-import "../framework/MessageReceiverApp.sol";
-import "../../interfaces/IWETH.sol";
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '../framework/MessageBusAddress.sol';
+import '../framework/MessageSenderApp.sol';
+import '../framework/MessageReceiverApp.sol';
+import '../../interfaces/IWETH.sol';
 
 contract SwapBase is MessageSenderApp, MessageReceiverApp {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -18,9 +18,10 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
     mapping(uint64 => uint256) public dstCryptoFee;
 
     // erc20 wrap of gas token of this chain, eg. WETH
-    address immutable public nativeWrap;
-    address immutable public rubicTransit;
+    address public immutable nativeWrap;
+    address public immutable rubicTransit;
 
+    uint256 public maxRubicSwap; // TODO: setter
     // minimal amount of bridged token
     mapping(address => uint256) public minSwapAmount;
     // fee amount that is safe to withdraw from contract
@@ -31,14 +32,16 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
 
     constructor(
         address _nativeWrap,
-        address _rubicTransit
-    ){
+        address _rubicTransit,
+        uint256 _maxRubicSwap
+    ) {
         nativeWrap = _nativeWrap;
         rubicTransit = _rubicTransit;
+        maxRubicSwap = _maxRubicSwap;
     }
 
     modifier onlyEOA() {
-        require(msg.sender == tx.origin, "Not EOA");
+        require(msg.sender == tx.origin, 'Not EOA');
         _;
     }
 
@@ -111,22 +114,14 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
     }
 
     // returns address of first token for V3
-    function _getFirstBytes20(bytes memory input)
-        internal
-        pure
-        returns (bytes20 result)
-    {
+    function _getFirstBytes20(bytes memory input) internal pure returns (bytes20 result) {
         assembly {
             result := mload(add(input, 32))
         }
     }
 
     // returns address of tokenOut for V3
-    function _getLastBytes20(bytes memory input)
-        internal
-        pure
-        returns (bytes20 result)
-    {
+    function _getLastBytes20(bytes memory input) internal pure returns (bytes20 result) {
         uint256 offset = input.length + 12;
         assembly {
             result := mload(add(input, offset))
@@ -139,32 +134,29 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
         uint64 _dstChainId,
         bytes memory _message
     ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(_sender, _srcChainId, _dstChainId, _message)
-            );
+        return keccak256(abi.encodePacked(_sender, _srcChainId, _dstChainId, _message));
     }
 
-    function _calculateCryptoFee(uint256 _fee, uint64 _dstChainId)
-    internal
-    returns (uint256 updatedFee) {
-        require(_fee > dstCryptoFee[_dstChainId], "too few crypto fee");
+    function _calculateCryptoFee(uint256 _fee, uint64 _dstChainId) internal returns (uint256 updatedFee) {
+        require(_fee > dstCryptoFee[_dstChainId], 'too few crypto fee');
         uint256 _feeAfterRubic = _fee - dstCryptoFee[_dstChainId];
         collectedFee[nativeWrap] += dstCryptoFee[_dstChainId];
         return (_feeAfterRubic);
     }
 
-    function safeApprove(IERC20 tokenIn, uint256 amount, address to) internal {
+    function safeApprove(
+        IERC20 tokenIn,
+        uint256 amount,
+        address to
+    ) internal {
         uint256 _allowance = tokenIn.allowance(address(this), to);
-        if (_allowance < amount){
-            if (_allowance == 0){
+        if (_allowance < amount) {
+            if (_allowance == 0) {
                 tokenIn.safeApprove(to, type(uint256).max);
-            }
-            else{
-                try tokenIn.approve(to, type(uint256).max) returns (bool res){
+            } else {
+                try tokenIn.approve(to, type(uint256).max) returns (bool res) {
                     require(res == true, 'approve failed');
-                }
-                catch {
+                } catch {
                     tokenIn.safeApprove(to, 0);
                     tokenIn.safeApprove(to, type(uint256).max);
                 }

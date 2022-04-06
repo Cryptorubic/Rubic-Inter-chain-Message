@@ -2,13 +2,13 @@
 
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import "../libraries/MsgDataTypes.sol";
-import "../libraries/MessageSenderLib.sol";
-import "../messagebus/MessageBus.sol";
-import "./MessageBusAddress.sol";
+import '../libraries/MsgDataTypes.sol';
+import '../libraries/MessageSenderLib.sol';
+import '../messagebus/MessageBus.sol';
+import './MessageBusAddress.sol';
 
 abstract contract MessageSenderApp is MessageBusAddress {
     using SafeERC20 for IERC20;
@@ -111,7 +111,7 @@ abstract contract MessageSenderApp is MessageBusAddress {
         ) {
             bridge = MessageBus(messageBus).pegBridgeV2();
         } else {
-            revert("bridge type not supported");
+            revert('bridge type not supported');
         }
         MessageSenderLib.sendTokenTransfer(
             _receiver,

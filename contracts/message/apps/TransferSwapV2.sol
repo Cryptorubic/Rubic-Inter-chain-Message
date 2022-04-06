@@ -2,159 +2,112 @@
 
 pragma solidity >=0.8.9;
 
-import "./SwapBase.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import './SwapBase.sol';
+import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 
 abstract contract TransferSwapV2 is SwapBase {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
-    event SwapRequestSentV2(
-        bytes32 id,
-        uint64 dstChainId,
-        uint256 srcAmount,
-        address srcToken
-    );
+    event SwapRequestSentV2(bytes32 id, uint64 dstChainId, uint256 srcAmount, address srcToken);
 
     // emitted if the recipient should receive crypto in the target blockchain
-    event TransferCryptoToOtherBlockchainUser(
-        uint256 transitAmountIn,
-        uint256 amountSpent
-    );
-    
+    event TransferCryptoToOtherBlockchainUser(uint256 transitAmountIn, uint256 amountSpent);
+
     // emitted if the recipient should receive tokens in the target blockchain
-    event TransferTokensToOtherBlockchainUser(
-        uint256 transitAmountIn,
-        uint256 amountSpent
-    );
+    event TransferTokensToOtherBlockchainUser(uint256 transitAmountIn, uint256 amountSpent);
 
     function transferWithSwapV2Native(
         address _receiver,
         uint256 _amountIn,
-        uint256 _cBridgePart,
         uint64 _dstChainId,
         SwapInfoV2 calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage,
-        bool _nativeOut
+        bool _nativeOut,
+        bool _disableRubic
     ) external payable onlyEOA {
-        require(_srcSwap.path[0] == nativeWrap, "token mismatch");
-        require(msg.value >= _amountIn, "Amount insufficient");
+        require(_srcSwap.path[0] == nativeWrap, 'token mismatch');
+        require(msg.value >= _amountIn, 'Amount insufficient');
         IWETH(nativeWrap).deposit{value: _amountIn}();
 
         uint256 _fee = _calculateCryptoFee(msg.value - _amountIn, _dstChainId);
 
         _splitTransferWithSwapV2(
-            SplitSwapInfo(_receiver,
-            _amountIn,
-            _cBridgePart,
-            _fee,
-            _dstChainId,
-            _srcSwap,
-            _dstSwap,
-            _maxBridgeSlippage,
-            _nativeOut)
+            SplitSwapInfo(
+                _receiver,
+                _amountIn,
+                _fee,
+                _dstChainId,
+                _srcSwap,
+                _dstSwap,
+                _maxBridgeSlippage,
+                _nativeOut,
+                _disableRubic
+            )
         );
     }
 
     function transferWithSwapV2(
         address _receiver,
         uint256 _amountIn,
-        uint256 _cBridgePart,
         uint64 _dstChainId,
         SwapInfoV2 memory _srcSwap,
         SwapInfoDest memory _dstSwap,
         uint32 _maxBridgeSlippage,
-        bool _nativeOut
+        bool _nativeOut,
+        bool _disableRubic
     ) external payable onlyEOA {
-        IERC20(_srcSwap.path[0]).safeTransferFrom(
-            msg.sender,
-            address(this),
-            _amountIn
-        );
+        IERC20(_srcSwap.path[0]).safeTransferFrom(msg.sender, address(this), _amountIn);
 
         uint256 _fee = _calculateCryptoFee(msg.value, _dstChainId);
 
         _splitTransferWithSwapV2(
-            SplitSwapInfo(_receiver,
-            _amountIn,
-            _cBridgePart,
-            _fee,
-            _dstChainId,
-            _srcSwap,
-            _dstSwap,
-            _maxBridgeSlippage,
-            _nativeOut)
+            SplitSwapInfo(
+                _receiver,
+                _amountIn,
+                _fee,
+                _dstChainId,
+                _srcSwap,
+                _dstSwap,
+                _maxBridgeSlippage,
+                _nativeOut,
+                _disableRubic
+            )
         );
     }
 
     struct SplitSwapInfo {
         address _receiver;
         uint256 _amountIn;
-        uint256 _cBridgePart;
         uint256 _fee;
         uint64 _dstChainId;
         SwapInfoV2 _srcSwap;
         SwapInfoDest _dstSwap;
         uint32 _maxBridgeSlippage;
         bool _nativeOut;
+        bool _disableRubic;
     }
 
-    function _splitTransferWithSwapV2(
-        SplitSwapInfo memory swapInfo
-    ) private {
+    function _splitTransferWithSwapV2(SplitSwapInfo memory swapInfo) private {
         (uint64 chainId, address srcTokenOut, uint256 srcAmtIn, uint256 srcAmtOut) = _swapV2(
             swapInfo._amountIn,
             swapInfo._dstChainId,
             swapInfo._srcSwap
         );
 
-        if (swapInfo._cBridgePart == 1e6){
-            _crossChainTransferWithSwapV2(
-                swapInfo._receiver,
-                swapInfo._amountIn,
-                chainId,
-                swapInfo._dstChainId,
-                swapInfo._srcSwap,
-                swapInfo._dstSwap,
-                swapInfo._maxBridgeSlippage,
-                nonce,
-                swapInfo._nativeOut,
-                swapInfo._fee,
-                srcTokenOut,
-                srcAmtOut
-            );
-        } else if (swapInfo._cBridgePart == 0){
-            _afterRubicSwap(
-                srcTokenOut,
-                srcAmtIn,
-                srcAmtOut,
-                swapInfo._nativeOut
-            );
+        if (swapInfo._disableRubic || srcTokenOut != rubicTransit) {
+            _crossChainTransferWithSwapV2(swapInfo, srcTokenOut, srcAmtOut, chainId, nonce);
         } else {
-            uint256 _cBridgeAmount = srcAmtOut * swapInfo._cBridgePart / 1e6;
+            uint256 _maxSwap = maxRubicSwap; //SLOAD
+            if (srcAmtOut > _maxSwap) {
+                uint256 cBridgePart = srcAmtOut - _maxSwap;
 
-            _crossChainTransferWithSwapV2(
-                swapInfo._receiver,
-                swapInfo._amountIn,
-                chainId,
-                swapInfo._dstChainId,
-                swapInfo._srcSwap,
-                swapInfo._dstSwap,
-                swapInfo._maxBridgeSlippage,
-                nonce,
-                swapInfo._nativeOut,
-                swapInfo._fee,
-                srcTokenOut,
-                _cBridgeAmount
-            );
-
-            _afterRubicSwap(
-                srcTokenOut,
-                srcAmtIn - _cBridgeAmount,
-                srcAmtOut,
-                swapInfo._nativeOut
-            );
+                _crossChainTransferWithSwapV2(swapInfo, srcTokenOut, cBridgePart, chainId, nonce);
+                _rubicSwap(srcTokenOut, srcAmtIn, srcAmtOut - cBridgePart, swapInfo._nativeOut);
+            } else {
+                _rubicSwap(srcTokenOut, srcAmtIn, srcAmtOut, swapInfo._nativeOut);
+            }
         }
     }
 
@@ -169,14 +122,19 @@ abstract contract TransferSwapV2 is SwapBase {
         uint256 _amountIn,
         uint64 _dstChainId,
         SwapInfoV2 memory _srcSwap
-    ) private returns (uint64, address, uint256, uint256){
+    )
+        private
+        returns (
+            uint64,
+            address,
+            uint256,
+            uint256
+        )
+    {
         nonce += 1;
         uint64 chainId = uint64(block.chainid);
 
-        require(
-            _srcSwap.path.length > 1 && _dstChainId != chainId,
-            "empty src swap path or same chain id"
-        );
+        require(_srcSwap.path.length > 1 && _dstChainId != chainId, 'empty src swap path or same chain id');
 
         address srcTokenOut = _srcSwap.path[_srcSwap.path.length - 1];
         uint256 srcAmtOut = _amountIn;
@@ -186,65 +144,54 @@ abstract contract TransferSwapV2 is SwapBase {
         if (_srcSwap.path.length > 1) {
             bool success;
             (success, srcAmtSpent, srcAmtOut) = _trySwapV2(_srcSwap, _amountIn);
-            if (!success) revert("src swap failed");
+            if (!success) revert('src swap failed');
         }
 
-        require(
-            srcAmtOut >= minSwapAmount[_srcSwap.path[_srcSwap.path.length - 1]],
-            "amount must be greater than min swap amount"
-        );
+        require(srcAmtOut >= minSwapAmount[srcTokenOut], 'amount must be greater than min swap amount');
 
         return (chainId, srcTokenOut, srcAmtSpent, srcAmtOut);
     }
 
     function _crossChainTransferWithSwapV2(
-        address _receiver,
-        uint256 _amountIn,
-        uint64 _chainId,
-        uint64 _dstChainId,
-        SwapInfoV2 memory _srcSwap,
-        SwapInfoDest memory _dstSwap,
-        uint32 _maxBridgeSlippage,
-        uint64 _nonce,
-        bool _nativeOut,
-        uint256 _fee,
+        SplitSwapInfo memory swapInfo,
         address srcTokenOut,
-        uint256 srcAmtOut
+        uint256 srcAmtOut,
+        uint64 _chainId,
+        uint64 _nonce
     ) private {
-        require(_dstSwap.path.length > 0, "empty dst swap path");
+        require(swapInfo._dstSwap.path.length > 0, 'empty dst swap path');
         bytes memory message = abi.encode(
             SwapRequestDest({
-                swap: _dstSwap,
+                swap: swapInfo._dstSwap,
                 receiver: msg.sender,
                 nonce: _nonce,
-                nativeOut: _nativeOut
+                nativeOut: swapInfo._nativeOut
             })
         );
 
-        bytes32 id = SwapBase._computeSwapRequestId(
-            msg.sender,
-            _chainId,
-            _dstChainId,
-            message
-        );
+        bytes32 id = SwapBase._computeSwapRequestId(msg.sender, _chainId, swapInfo._dstChainId, message);
 
         sendMessageWithTransfer(
-            _receiver,
+            swapInfo._receiver,
             srcTokenOut,
             srcAmtOut,
-            _dstChainId,
+            swapInfo._dstChainId,
             _nonce,
-            _maxBridgeSlippage,
+            swapInfo._maxBridgeSlippage,
             message,
             MsgDataTypes.BridgeSendType.Liquidity,
-            _fee
+            swapInfo._fee
         );
-        emit SwapRequestSentV2(id, _dstChainId, _amountIn, _srcSwap.path[0]);
+        emit SwapRequestSentV2(id, swapInfo._dstChainId, swapInfo._amountIn, swapInfo._srcSwap.path[0]);
     }
 
     function _trySwapV2(SwapInfoV2 memory _swap, uint256 _amount)
         internal
-        returns (bool ok, uint256 amountSpent, uint256 amountOut)
+        returns (
+            bool ok,
+            uint256 amountSpent,
+            uint256 amountOut
+        )
     {
         uint256 zero;
 
@@ -268,7 +215,7 @@ abstract contract TransferSwapV2 is SwapBase {
         }
     }
 
-    function _afterRubicSwap(
+    function _rubicSwap(
         address srcTokenOut,
         uint256 srcAmtIn,
         uint256 srcAmtOut,
@@ -276,16 +223,10 @@ abstract contract TransferSwapV2 is SwapBase {
     ) private {
         require(srcTokenOut == rubicTransit, 'wrong transit token');
 
-        if (_nativeOut){
-            emit TransferCryptoToOtherBlockchainUser(
-                srcAmtOut,
-                srcAmtIn
-            );
+        if (_nativeOut) {
+            emit TransferCryptoToOtherBlockchainUser(srcAmtOut, srcAmtIn);
         } else {
-            emit TransferTokensToOtherBlockchainUser(
-                srcAmtOut,
-                srcAmtIn
-            );
+            emit TransferTokensToOtherBlockchainUser(srcAmtOut, srcAmtIn);
         }
     }
 }

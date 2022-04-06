@@ -37,12 +37,12 @@ describe('RubicCrossChain', () => {
         {
             receiver = null,
             amountIn = DEFAULT_AMOUNT_IN,
-            cBridgePart = '0',
             dstChainID = DST_CHAIN_ID,
             srcDEX = router,
             srcPath = [wnative.address, token.address],
             nativeOut = false,
-            nativeIn = null
+            nativeIn = null,
+            disableRubic = false
         } = {}
     ): Promise<ContractTransaction> {
         const cryptoFee = await swapMain.dstCryptoFee(dstChainID);
@@ -50,7 +50,6 @@ describe('RubicCrossChain', () => {
         return swapMain.transferWithSwapV2Native(
             receiver === null ? wallet.address : receiver,
             amountIn,
-            cBridgePart,
             dstChainID,
             {
                 dex: srcDEX,
@@ -68,10 +67,11 @@ describe('RubicCrossChain', () => {
             },
             '10',
             nativeOut,
+            disableRubic,
             {
                 value:
                     nativeIn === null
-                        ? amountIn.add(cryptoFee).add(ethers.utils.parseEther('2'))
+                        ? amountIn.add(cryptoFee).add(ethers.utils.parseEther('2')) //TODO: add crypto celer fee
                         : nativeIn
             }
         );
@@ -82,12 +82,12 @@ describe('RubicCrossChain', () => {
         {
             receiver = null,
             amountIn = DEFAULT_AMOUNT_IN,
-            cBridgePart = '0',
             dstChainID = DST_CHAIN_ID,
             srcDEX = router,
             srcPath = [wnative.address, token.address],
             nativeOut = false,
-            nativeIn = null
+            nativeIn = null,
+            disableRubic = false
         } = {}
     ): Promise<ContractTransaction> {
         const cryptoFee = await swapMain.dstCryptoFee(dstChainID);
@@ -95,7 +95,6 @@ describe('RubicCrossChain', () => {
         return swapMain.transferWithSwapV2(
             receiver === null ? wallet.address : receiver,
             amountIn,
-            cBridgePart,
             dstChainID,
             {
                 dex: srcDEX,
@@ -113,6 +112,7 @@ describe('RubicCrossChain', () => {
             },
             '10',
             nativeOut,
+            disableRubic,
             { value: nativeIn === null ? cryptoFee.add(ethers.utils.parseEther('0.01')) : nativeIn }
         );
     }
@@ -245,11 +245,14 @@ describe('RubicCrossChain', () => {
     describe('#WithSwapTests', () => {
         describe('#transferWithSwapV2Native', () => {
             it('Should swap native and transfer through Rubic only', async () => {
-                const amountOutMin = await getAmountOutMin();
-
-                await expect(callTransferWithSwapV2Native(amountOutMin))
+                const amountOutMin = await getAmountOutMin(ethers.utils.parseEther('0.1'));
+                await expect(
+                    callTransferWithSwapV2Native(amountOutMin, {
+                        amountIn: ethers.utils.parseEther('0.1')
+                    })
+                )
                     .to.emit(swapMain, 'TransferTokensToOtherBlockchainUser')
-                    .withArgs(amountOutMin, DEFAULT_AMOUNT_IN);
+                    .withArgs(amountOutMin, ethers.utils.parseEther('0.1'));
 
                 expect(await token.balanceOf(swapMain.address)).to.be.eq(amountOutMin);
             });
@@ -260,7 +263,7 @@ describe('RubicCrossChain', () => {
 
                 await expect(
                     callTransferWithSwapV2Native(amountOutMin, {
-                        cBridgePart: '1000000',
+                        disableRubic: true,
                         srcPath: [wnative.address, token.address]
                     })
                 )
@@ -297,7 +300,7 @@ describe('RubicCrossChain', () => {
                 await expect(
                     callTransferWithSwapV2(amountOutMin, {
                         srcPath: [swapToken.address, token.address],
-                        cBridgePart: '1000000'
+                        disableRubic: true
                     })
                 )
                     .to.emit(swapMain, 'SwapRequestSentV2')

@@ -1,5 +1,6 @@
 import { Fixture } from 'ethereum-waffle';
 import { ethers } from 'hardhat';
+import { MAX_RUBIC_SWAP } from './consts';
 import { TestERC20 } from '../../typechain-types';
 import { SwapMain } from '../../typechain-types';
 import { WETH9 } from '../../typechain-types';
@@ -97,7 +98,8 @@ export const swapContractFixtureInFork: Fixture<SwapContractFixture> = async fun
         TEST_BUS,
         supportedDEXes,
         TEST_NATIVE,
-        TEST_TRANSIT
+        TEST_TRANSIT,
+        MAX_RUBIC_SWAP
     )) as SwapMain;
 
     const testMessagesFactory = await ethers.getContractFactory('TestMessages');

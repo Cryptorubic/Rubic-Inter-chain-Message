@@ -2,7 +2,7 @@
 
 pragma solidity >=0.8.0;
 
-import "../../safeguard/Ownable.sol";
+import '../../safeguard/Ownable.sol';
 
 abstract contract MessageBusAddress is Ownable {
     event MessageBusUpdated(address messageBus);

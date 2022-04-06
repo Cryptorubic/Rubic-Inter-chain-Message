@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.9;
 
-import "./MessageBusSender.sol";
-import "./MessageBusReceiver.sol";
+import './MessageBusSender.sol';
+import './MessageBusReceiver.sol';
 
 contract MessageBus is MessageBusSender, MessageBusReceiver {
     constructor(

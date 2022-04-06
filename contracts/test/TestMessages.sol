@@ -3,7 +3,7 @@ pragma solidity >=0.8.9;
 import '../message/apps/SwapBase.sol';
 
 contract TestMessages is SwapBase {
-    constructor() SwapBase(address(this), address(this)) {}
+    constructor() SwapBase(address(this), address(this), 0) {}
 
     function getMessage(
         SwapInfoDest memory _dstSwap,
