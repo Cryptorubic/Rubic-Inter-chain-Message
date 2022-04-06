@@ -42,10 +42,13 @@ abstract contract TransferSwapV2 is SwapBase {
         require(msg.value >= _amountIn, "Amount insufficient");
         IWETH(nativeWrap).deposit{value: _amountIn}();
 
+        uint256 _fee = _calculateCryptoFee(msg.value - _amountIn, _dstChainId);
+
         _splitTransferWithSwapV2(
             SplitSwapInfo(_receiver,
             _amountIn,
             _cBridgePart,
+            _fee,
             _dstChainId,
             _srcSwap,
             _dstSwap,
@@ -70,10 +73,13 @@ abstract contract TransferSwapV2 is SwapBase {
             _amountIn
         );
 
+        uint256 _fee = _calculateCryptoFee(msg.value, _dstChainId);
+
         _splitTransferWithSwapV2(
             SplitSwapInfo(_receiver,
             _amountIn,
             _cBridgePart,
+            _fee,
             _dstChainId,
             _srcSwap,
             _dstSwap,
@@ -86,6 +92,7 @@ abstract contract TransferSwapV2 is SwapBase {
         address _receiver;
         uint256 _amountIn;
         uint256 _cBridgePart;
+        uint256 _fee;
         uint64 _dstChainId;
         SwapInfoV2 _srcSwap;
         SwapInfoDest _dstSwap;
@@ -102,8 +109,6 @@ abstract contract TransferSwapV2 is SwapBase {
             swapInfo._srcSwap
         );
 
-        uint256 _fee = _calculateCryptoFee(msg.value - swapInfo._amountIn, swapInfo._dstChainId);
-
         if (swapInfo._cBridgePart == 1e6){
             _crossChainTransferWithSwapV2(
                 swapInfo._receiver,
@@ -115,7 +120,7 @@ abstract contract TransferSwapV2 is SwapBase {
                 swapInfo._maxBridgeSlippage,
                 nonce,
                 swapInfo._nativeOut,
-                _fee,
+                swapInfo._fee,
                 srcTokenOut,
                 srcAmtOut
             );
@@ -139,7 +144,7 @@ abstract contract TransferSwapV2 is SwapBase {
                 swapInfo._maxBridgeSlippage,
                 nonce,
                 swapInfo._nativeOut,
-                _fee,
+                swapInfo._fee,
                 srcTokenOut,
                 _cBridgeAmount
             );

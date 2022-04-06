@@ -25,7 +25,7 @@ contract TestMessages is SwapBase {
         SwapInfoDest memory _dstSwap,
         uint64 _nonce,
         bool _nativeOut
-    ) external view returns (bytes32) {
+    ) external pure returns (bytes32) {
         bytes memory message = abi.encode(
             SwapRequestDest({swap: _dstSwap, receiver: _receiver, nonce: _nonce, nativeOut: _nativeOut})
         );

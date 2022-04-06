@@ -18,11 +18,11 @@ const {
     SWAP_TOKEN_BSC_TESTNET: TEST_SWAP_TOKEN
 } = envConfig.parsed || {};
 
-async function testTokenFixture(): Promise<{ token: TestERC20 }> {
-    const token = (await (await ethers.getContractFactory('TestERC20')).deploy()) as TestERC20;
-
-    return { token };
-}
+// async function testTokenFixture(): Promise<{ token: TestERC20 }> {
+//     const token = (await (await ethers.getContractFactory('TestERC20')).deploy()) as TestERC20;
+//
+//     return { token };
+// }
 
 interface SwapContractFixture {
     swapMain: SwapMain;
@@ -30,12 +30,13 @@ interface SwapContractFixture {
     token: TestERC20;
     wnative: WETH9;
     router: string;
-}
-
-interface TestContractsFixture {
     testMessagesContract: TestMessages;
     messageBus: MessageBusSender;
 }
+
+// interface TestContractsFixture {
+//
+// }
 
 // export const swapContractFixtureWithLocalToken: Fixture<SwapContractFixture> = async function (
 //     wallets
@@ -61,18 +62,16 @@ interface TestContractsFixture {
 //     return { swapMain, token, wnative, router };
 // };
 
-export const testFixture: Fixture<TestContractsFixture> = async function (
-    wallets
-): Promise<TestContractsFixture> {
-    const testMessagesFactory = await ethers.getContractFactory('TestMessages');
-    const testMessagesContract = (await testMessagesFactory.deploy()) as TestMessages;
-
-    const messageBusFactory = ethers.ContractFactory.fromSolidity(MessageBusJSON);
-    let messageBus = messageBusFactory.attach(TEST_BUS) as MessageBusSender;
-    messageBus = messageBus.connect(wallets[0]);
-
-    return { testMessagesContract, messageBus };
-};
+// export const testFixture: Fixture<TestContractsFixture> = async function (
+//     wallets
+// ): Promise<TestContractsFixture> {
+//     console.log('qwdawda')
+//
+//
+//     console.log(testMessagesContract.address)
+//
+//     return { testMessagesContract, messageBus };
+// };
 
 export const swapContractFixtureInFork: Fixture<SwapContractFixture> = async function (
     wallets
@@ -101,5 +100,12 @@ export const swapContractFixtureInFork: Fixture<SwapContractFixture> = async fun
         TEST_TRANSIT
     )) as SwapMain;
 
-    return { swapMain, swapToken, token, wnative, router };
+    const testMessagesFactory = await ethers.getContractFactory('TestMessages');
+    const testMessagesContract = (await testMessagesFactory.deploy()) as TestMessages;
+
+    const messageBusFactory = ethers.ContractFactory.fromSolidity(MessageBusJSON);
+    let messageBus = messageBusFactory.attach(TEST_BUS) as MessageBusSender;
+    messageBus = messageBus.connect(wallets[0]);
+
+    return { swapMain, swapToken, token, wnative, router, testMessagesContract, messageBus };
 };
