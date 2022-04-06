@@ -97,15 +97,18 @@ abstract contract TransferSwapV2 is SwapBase {
         );
 
         if (swapInfo._disableRubic || srcTokenOut != rubicTransit) {
-            _crossChainTransferWithSwapV2(swapInfo, srcTokenOut, srcAmtOut, chainId, nonce);
+            // only celer swap
+            _celerSwap(swapInfo, srcTokenOut, srcAmtOut, chainId, nonce);
         } else {
             uint256 _maxSwap = maxRubicSwap; //SLOAD
             if (srcAmtOut > _maxSwap) {
+                // split celer and Rubic
                 uint256 cBridgePart = srcAmtOut - _maxSwap;
 
-                _crossChainTransferWithSwapV2(swapInfo, srcTokenOut, cBridgePart, chainId, nonce);
+                _celerSwap(swapInfo, srcTokenOut, cBridgePart, chainId, nonce);
                 _rubicSwap(srcTokenOut, srcAmtIn, srcAmtOut - cBridgePart, swapInfo._nativeOut);
             } else {
+                // only Rubic swap
                 _rubicSwap(srcTokenOut, srcAmtIn, srcAmtOut, swapInfo._nativeOut);
             }
         }
@@ -152,7 +155,7 @@ abstract contract TransferSwapV2 is SwapBase {
         return (chainId, srcTokenOut, srcAmtSpent, srcAmtOut);
     }
 
-    function _crossChainTransferWithSwapV2(
+    function _celerSwap(
         SplitSwapInfo memory swapInfo,
         address srcTokenOut,
         uint256 srcAmtOut,
