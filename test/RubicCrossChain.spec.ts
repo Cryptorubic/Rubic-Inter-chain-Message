@@ -270,7 +270,7 @@ describe('RubicCrossChain', () => {
                     .to.emit(swapMain, 'SwapRequestSentV2')
                     .withArgs(ID, DST_CHAIN_ID, DEFAULT_AMOUNT_IN, wnative.address);
             });
-            describe.only('Should swap native and perform split swap', () => {
+            describe('Should swap native and perform split swap', () => {
                 let amountOutMin: BN;
                 let rubicPart: BN;
 
@@ -280,20 +280,12 @@ describe('RubicCrossChain', () => {
                 });
                 it('Correct Celer event', async () => {
                     const ID = await getID(testMessagesContract, (await swapMain.nonce()).add('1'));
-                    await expect(
-                        callTransferWithSwapV2Native(amountOutMin, {
-                            srcPath: [wnative.address, token.address]
-                        })
-                    )
+                    await expect(callTransferWithSwapV2Native(amountOutMin))
                         .to.emit(swapMain, 'SwapRequestSentV2')
                         .withArgs(ID, DST_CHAIN_ID, DEFAULT_AMOUNT_IN, wnative.address);
                 });
                 it('Correct Rubic event', async () => {
-                    await expect(
-                        callTransferWithSwapV2Native(amountOutMin, {
-                            srcPath: [wnative.address, token.address]
-                        })
-                    )
+                    await expect(callTransferWithSwapV2Native(amountOutMin))
                         .to.emit(swapMain, 'TransferTokensToOtherBlockchainUser')
                         .withArgs(rubicPart, DEFAULT_AMOUNT_IN);
                     expect(await token.balanceOf(swapMain.address)).to.be.eq(rubicPart);
@@ -334,6 +326,42 @@ describe('RubicCrossChain', () => {
                 )
                     .to.emit(swapMain, 'SwapRequestSentV2')
                     .withArgs(ID, DST_CHAIN_ID, DEFAULT_AMOUNT_IN, swapToken.address);
+            });
+            describe('Should swap native and perform split swap', () => {
+                let amountOutMin: BN;
+                let rubicPart: BN;
+                const amountIn = ethers.utils.parseEther('3000');
+
+                beforeEach('Get amounts', async () => {
+                    await swapToken.approve(swapMain.address, ethers.constants.MaxUint256);
+                    amountOutMin = await getAmountOutMin(amountIn, [
+                        swapToken.address,
+                        token.address
+                    ]);
+                    rubicPart = await swapMain.maxRubicSwap();
+                });
+                it('Correct Celer event', async () => {
+                    const ID = await getID(testMessagesContract, (await swapMain.nonce()).add('1'));
+                    await expect(
+                        callTransferWithSwapV2(amountOutMin, {
+                            amountIn: amountIn,
+                            srcPath: [swapToken.address, token.address]
+                        })
+                    )
+                        .to.emit(swapMain, 'SwapRequestSentV2')
+                        .withArgs(ID, DST_CHAIN_ID, amountIn, swapToken.address);
+                });
+                it('Correct Rubic event', async () => {
+                    await expect(
+                        callTransferWithSwapV2(amountOutMin, {
+                            amountIn: amountIn,
+                            srcPath: [swapToken.address, token.address]
+                        })
+                    )
+                        .to.emit(swapMain, 'TransferTokensToOtherBlockchainUser')
+                        .withArgs(rubicPart, amountIn);
+                    expect(await token.balanceOf(swapMain.address)).to.be.eq(rubicPart);
+                });
             });
         });
         //describe('#')
