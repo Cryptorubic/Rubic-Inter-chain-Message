@@ -106,10 +106,10 @@ abstract contract TransferSwapV2 is SwapBase {
                 uint256 cBridgePart = srcAmtOut - _maxSwap;
 
                 _celerSwap(swapInfo, srcTokenOut, cBridgePart, chainId, nonce);
-                _rubicSwap(srcTokenOut, srcAmtIn, srcAmtOut - cBridgePart, swapInfo._nativeOut);
+                _rubicSwap(srcAmtIn, srcAmtOut - cBridgePart, swapInfo._nativeOut);
             } else {
                 // only Rubic swap
-                _rubicSwap(srcTokenOut, srcAmtIn, srcAmtOut, swapInfo._nativeOut);
+                _rubicSwap(srcAmtIn, srcAmtOut, swapInfo._nativeOut);
             }
         }
     }
@@ -219,7 +219,6 @@ abstract contract TransferSwapV2 is SwapBase {
     }
 
     function _rubicSwap(
-        address srcTokenOut,
         uint256 srcAmtIn,
         uint256 srcAmtOut,
         bool _nativeOut
