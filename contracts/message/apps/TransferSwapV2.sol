@@ -224,8 +224,6 @@ abstract contract TransferSwapV2 is SwapBase {
         uint256 srcAmtOut,
         bool _nativeOut
     ) private {
-        require(srcTokenOut == rubicTransit, 'wrong transit token');
-
         if (_nativeOut) {
             emit TransferCryptoToOtherBlockchainUser(srcAmtOut, srcAmtIn);
         } else {
