@@ -1,9 +1,8 @@
-import { ethers, network, waffle } from 'hardhat';
+import { ethers, waffle } from 'hardhat';
 import { swapContractFixtureInFork } from './shared/fixtures';
 import { Wallet } from '@ethersproject/wallet';
 import { SwapMain, TestERC20, TestMessages, WETH9 } from '../typechain-types';
 import { expect } from 'chai';
-import { AbiCoder } from '@ethersproject/abi';
 import { DEADLINE, DST_CHAIN_ID, DEFAULT_AMOUNT_IN, VERSION } from './shared/consts';
 import { BigNumber as BN, BigNumberish, ContractTransaction } from 'ethers';
 import { getRouterV2 } from './shared/utils';
@@ -30,7 +29,6 @@ describe('RubicCrossChain', () => {
     let testMessagesContract: TestMessages;
 
     let loadFixture: ReturnType<typeof createFixtureLoader>;
-    let abiCoder: AbiCoder;
 
     async function callTransferWithSwapV2Native(
         amountOutMinimum: BigNumberish,
@@ -195,42 +193,6 @@ describe('RubicCrossChain', () => {
         ({ swapMain, swapToken, token, wnative, router, testMessagesContract } = await loadFixture(
             swapContractFixtureInFork
         ));
-
-        abiCoder = ethers.utils.defaultAbiCoder;
-
-        const storageBalancePositionTransit = ethers.utils.keccak256(
-            abiCoder.encode(['address'], [wallet.address]) +
-                abiCoder.encode(['uint256'], [0]).slice(2, 66)
-        );
-
-        const storageBalancePositionSwap = ethers.utils.keccak256(
-            abiCoder.encode(['address'], [wallet.address]) +
-                abiCoder.encode(['uint256'], [0]).slice(2, 66)
-        );
-
-        // for (let i = 0; i < 5; i++) {
-        //     console.log(i, await ethers.provider.getStorageAt(token.address, i));
-        // }
-
-        await network.provider.send('hardhat_setStorageAt', [
-            token.address,
-            storageBalancePositionTransit,
-            abiCoder.encode(['uint256'], [ethers.utils.parseEther('100000')])
-        ]);
-
-        await network.provider.send('hardhat_setStorageAt', [
-            swapToken.address,
-            storageBalancePositionSwap,
-            abiCoder.encode(['uint256'], [ethers.utils.parseEther('100000')])
-        ]);
-
-        expect(await token.balanceOf(wallet.address)).to.eq(ethers.utils.parseEther('100000'));
-        expect(await swapToken.balanceOf(wallet.address)).to.eq(ethers.utils.parseEther('100000'));
-
-        await network.provider.send('hardhat_setBalance', [
-            wallet.address,
-            '0x152D02C7E14AF6800000' // 100000 eth
-        ]);
     });
 
     it('constructor initializes', async () => {
@@ -251,8 +213,8 @@ describe('RubicCrossChain', () => {
                         amountIn: ethers.utils.parseEther('0.1')
                     })
                 )
-                    .to.emit(swapMain, 'TransferTokensToOtherBlockchainUser')
-                    .withArgs(amountOutMin, ethers.utils.parseEther('0.1'));
+                    .to.emit(swapMain, 'RubciToTokenSwapRequest')
+                    .withArgs(amountOutMin);
 
                 expect(await token.balanceOf(swapMain.address)).to.be.eq(amountOutMin);
             });
@@ -286,8 +248,8 @@ describe('RubicCrossChain', () => {
                 });
                 it('Correct Rubic event', async () => {
                     await expect(callTransferWithSwapV2Native(amountOutMin))
-                        .to.emit(swapMain, 'TransferTokensToOtherBlockchainUser')
-                        .withArgs(rubicPart, DEFAULT_AMOUNT_IN);
+                        .to.emit(swapMain, 'RubciToTokenSwapRequest')
+                        .withArgs(rubicPart);
                     expect(await token.balanceOf(swapMain.address)).to.be.eq(rubicPart);
                 });
             });
@@ -304,8 +266,8 @@ describe('RubicCrossChain', () => {
                         srcPath: [swapToken.address, token.address]
                     })
                 )
-                    .to.emit(swapMain, 'TransferTokensToOtherBlockchainUser')
-                    .withArgs(amountOutMin, DEFAULT_AMOUNT_IN);
+                    .to.emit(swapMain, 'RubciToTokenSwapRequest')
+                    .withArgs(amountOutMin);
 
                 expect(await token.balanceOf(swapMain.address)).to.be.eq(amountOutMin);
             });
@@ -358,8 +320,8 @@ describe('RubicCrossChain', () => {
                             srcPath: [swapToken.address, token.address]
                         })
                     )
-                        .to.emit(swapMain, 'TransferTokensToOtherBlockchainUser')
-                        .withArgs(rubicPart, amountIn);
+                        .to.emit(swapMain, 'RubciToTokenSwapRequest')
+                        .withArgs(rubicPart);
                     expect(await token.balanceOf(swapMain.address)).to.be.eq(rubicPart);
                 });
             });

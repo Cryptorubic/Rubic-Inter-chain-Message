@@ -189,7 +189,7 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         });
 
         bool success;
-        (success, , dstAmount) = _trySwapV2(_dstSwap, _amount);
+        (success, dstAmount) = _trySwapV2(_dstSwap, _amount);
         if (success) {
             _sendToken(_dstSwap.path[_dstSwap.path.length - 1], dstAmount, _msgDst.receiver, _msgDst.nativeOut);
             status = SwapStatus.Succeeded;

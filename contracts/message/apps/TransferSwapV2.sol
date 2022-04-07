@@ -11,12 +11,6 @@ abstract contract TransferSwapV2 is SwapBase {
 
     event SwapRequestSentV2(bytes32 id, uint64 dstChainId, uint256 srcAmount, address srcToken);
 
-    // emitted if the recipient should receive crypto in the target blockchain
-    event TransferCryptoToOtherBlockchainUser(uint256 transitAmountIn, uint256 amountSpent);
-
-    // emitted if the recipient should receive tokens in the target blockchain
-    event TransferTokensToOtherBlockchainUser(uint256 transitAmountIn, uint256 amountSpent);
-
     function transferWithSwapV2Native(
         address _receiver,
         uint256 _amountIn,
@@ -34,7 +28,7 @@ abstract contract TransferSwapV2 is SwapBase {
         uint256 _fee = _calculateCryptoFee(msg.value - _amountIn, _dstChainId);
 
         _splitTransferWithSwapV2(
-            SplitSwapInfo(
+            SplitSwapInfoV2(
                 _receiver,
                 _amountIn,
                 _fee,
@@ -63,7 +57,7 @@ abstract contract TransferSwapV2 is SwapBase {
         uint256 _fee = _calculateCryptoFee(msg.value, _dstChainId);
 
         _splitTransferWithSwapV2(
-            SplitSwapInfo(
+            SplitSwapInfoV2(
                 _receiver,
                 _amountIn,
                 _fee,
@@ -77,7 +71,7 @@ abstract contract TransferSwapV2 is SwapBase {
         );
     }
 
-    struct SplitSwapInfo {
+    struct SplitSwapInfoV2 {
         address _receiver;
         uint256 _amountIn;
         uint256 _fee;
@@ -89,8 +83,8 @@ abstract contract TransferSwapV2 is SwapBase {
         bool _disableRubic;
     }
 
-    function _splitTransferWithSwapV2(SplitSwapInfo memory swapInfo) private {
-        (uint64 chainId, address srcTokenOut, uint256 srcAmtIn, uint256 srcAmtOut) = _swapV2(
+    function _splitTransferWithSwapV2(SplitSwapInfoV2 memory swapInfo) private {
+        (uint64 chainId, address srcTokenOut, uint256 srcAmtOut) = _swapV2(
             swapInfo._amountIn,
             swapInfo._dstChainId,
             swapInfo._srcSwap
@@ -106,10 +100,10 @@ abstract contract TransferSwapV2 is SwapBase {
                 uint256 cBridgePart = srcAmtOut - _maxSwap;
 
                 _celerSwap(swapInfo, srcTokenOut, cBridgePart, chainId, nonce);
-                _rubicSwap(srcAmtIn, srcAmtOut - cBridgePart, swapInfo._nativeOut);
+                _rubicSwap(srcAmtOut - cBridgePart, swapInfo._nativeOut);
             } else {
                 // only Rubic swap
-                _rubicSwap(srcAmtIn, srcAmtOut, swapInfo._nativeOut);
+                _rubicSwap(srcAmtOut, swapInfo._nativeOut);
             }
         }
     }
@@ -130,7 +124,6 @@ abstract contract TransferSwapV2 is SwapBase {
         returns (
             uint64,
             address,
-            uint256,
             uint256
         )
     {
@@ -140,29 +133,23 @@ abstract contract TransferSwapV2 is SwapBase {
         require(_srcSwap.path.length > 1 && _dstChainId != chainId, 'empty src swap path or same chain id');
 
         address srcTokenOut = _srcSwap.path[_srcSwap.path.length - 1];
-        uint256 srcAmtOut = _amountIn;
-        uint256 srcAmtSpent = _amountIn;
 
-        // swap source token for intermediate token on the source DEX
-        if (_srcSwap.path.length > 1) {
-            bool success;
-            (success, srcAmtSpent, srcAmtOut) = _trySwapV2(_srcSwap, _amountIn);
-            if (!success) revert('src swap failed');
-        }
+        (bool success, uint srcAmtOut) = _trySwapV2(_srcSwap, _amountIn);
+        if (!success) revert('src swap failed');
 
         require(srcAmtOut >= minSwapAmount[srcTokenOut], 'amount must be greater than min swap amount');
 
-        return (chainId, srcTokenOut, srcAmtSpent, srcAmtOut);
+        return (chainId, srcTokenOut, srcAmtOut);
     }
 
     function _celerSwap(
-        SplitSwapInfo memory swapInfo,
+        SplitSwapInfoV2 memory swapInfo,
         address srcTokenOut,
         uint256 srcAmtOut,
         uint64 _chainId,
         uint64 _nonce
     ) private {
-        require(swapInfo._dstSwap.path.length > 0, 'empty dst swap path');
+        require(swapInfo._dstSwap.path.length > 0 || swapInfo._dstSwap.dataInchOrPathV3.length == 0, 'empty dst swap path');
         bytes memory message = abi.encode(
             SwapRequestDest({
                 swap: swapInfo._dstSwap,
@@ -192,14 +179,11 @@ abstract contract TransferSwapV2 is SwapBase {
         internal
         returns (
             bool ok,
-            uint256 amountSpent,
             uint256 amountOut
         )
     {
-        uint256 zero;
-
         if (!supportedDEXes.contains(_swap.dex)) {
-            return (false, zero, zero);
+            return (false, 0);
         }
 
         safeApprove(IERC20(_swap.path[0]), _amount, _swap.dex);
@@ -212,21 +196,9 @@ abstract contract TransferSwapV2 is SwapBase {
                 _swap.deadline
             )
         returns (uint256[] memory amounts) {
-            return (true, amounts[0], amounts[amounts.length - 1]);
+            return (true, amounts[amounts.length - 1]);
         } catch {
-            return (false, zero, zero);
-        }
-    }
-
-    function _rubicSwap(
-        uint256 srcAmtIn,
-        uint256 srcAmtOut,
-        bool _nativeOut
-    ) private {
-        if (_nativeOut) {
-            emit TransferCryptoToOtherBlockchainUser(srcAmtOut, srcAmtIn);
-        } else {
-            emit TransferTokensToOtherBlockchainUser(srcAmtOut, srcAmtIn);
+            return (false, 0);
         }
     }
 }

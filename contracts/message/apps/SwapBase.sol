@@ -10,7 +10,7 @@ import '../framework/MessageSenderApp.sol';
 import '../framework/MessageReceiverApp.sol';
 import '../../interfaces/IWETH.sol';
 
-contract SwapBase is MessageSenderApp, MessageReceiverApp {
+contract SwapBase is MessageSenderApp, MessageReceiverApp { //TODO: refactor into abstract
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
@@ -29,6 +29,12 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
     uint256 public feeRubic; // 1m is 100%
 
     uint64 public nonce;
+
+    // emitted if the recipient should receive crypto in the target blockchain
+    event RubciToNativeSwapRequest(uint256 transitTokenAmount);
+
+    // emitted if the recipient should receive tokens in the target blockchain
+    event RubciToTokenSwapRequest(uint256 transitTokenAmount);
 
     constructor(
         address _nativeWrap,
@@ -161,6 +167,17 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
                     tokenIn.safeApprove(to, type(uint256).max);
                 }
             }
+        }
+    }
+
+    function _rubicSwap(
+        uint256 srcAmtOut,
+        bool _nativeOut
+    ) internal {
+        if (_nativeOut) {
+            emit RubciToNativeSwapRequest(srcAmtOut);
+        } else {
+            emit RubciToTokenSwapRequest(srcAmtOut);
         }
     }
 
