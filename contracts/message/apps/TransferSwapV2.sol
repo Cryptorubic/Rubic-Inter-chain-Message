@@ -84,26 +84,38 @@ abstract contract TransferSwapV2 is SwapBase {
     }
 
     function _splitTransferWithSwapV2(SplitSwapInfoV2 memory swapInfo) private {
+        nonce += 1; //TODO: use incrementer OZ
+        uint64 _nonce = nonce;
+
         (uint64 chainId, address srcTokenOut, uint256 srcAmtOut) = _swapV2(
             swapInfo._amountIn,
             swapInfo._dstChainId,
             swapInfo._srcSwap
         );
 
+        bytes memory message = abi.encode(
+            SwapRequestDest({
+                swap: swapInfo._dstSwap,
+                receiver: msg.sender,
+                nonce: _nonce,
+                nativeOut: swapInfo._nativeOut
+            })
+        );
+
         if (swapInfo._disableRubic || srcTokenOut != rubicTransit) {
             // only celer swap
-            _celerSwap(swapInfo, srcTokenOut, srcAmtOut, chainId, nonce);
+            _celerSwap(swapInfo, message, srcTokenOut, srcAmtOut, chainId, _nonce);
         } else {
             uint256 _maxSwap = maxRubicSwap; //SLOAD
             if (srcAmtOut > _maxSwap) {
                 // split celer and Rubic
                 uint256 cBridgePart = srcAmtOut - _maxSwap;
 
-                _celerSwap(swapInfo, srcTokenOut, cBridgePart, chainId, nonce);
-                _rubicSwap(srcAmtOut - cBridgePart, swapInfo._nativeOut);
+                _celerSwap(swapInfo, message, srcTokenOut, cBridgePart, chainId, _nonce);
+                emit RubciSwapRequest(srcAmtOut - cBridgePart, message, swapInfo._nativeOut);
             } else {
                 // only Rubic swap
-                _rubicSwap(srcAmtOut, swapInfo._nativeOut);
+                emit RubciSwapRequest(srcAmtOut, message, swapInfo._nativeOut);
             }
         }
     }
@@ -127,7 +139,6 @@ abstract contract TransferSwapV2 is SwapBase {
             uint256
         )
     {
-        nonce += 1;
         uint64 chainId = uint64(block.chainid);
 
         require(_srcSwap.path.length > 1 && _dstChainId != chainId, 'empty src swap path or same chain id');
@@ -144,20 +155,13 @@ abstract contract TransferSwapV2 is SwapBase {
 
     function _celerSwap(
         SplitSwapInfoV2 memory swapInfo,
+        bytes memory message,
         address srcTokenOut,
         uint256 srcAmtOut,
         uint64 _chainId,
         uint64 _nonce
     ) private {
         require(swapInfo._dstSwap.path.length > 0 || swapInfo._dstSwap.dataInchOrPathV3.length == 0, 'empty dst swap path');
-        bytes memory message = abi.encode(
-            SwapRequestDest({
-                swap: swapInfo._dstSwap,
-                receiver: msg.sender,
-                nonce: _nonce,
-                nativeOut: swapInfo._nativeOut
-            })
-        );
 
         bytes32 id = SwapBase._computeSwapRequestId(msg.sender, _chainId, swapInfo._dstChainId, message);
 

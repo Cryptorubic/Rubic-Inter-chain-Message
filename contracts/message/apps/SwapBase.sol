@@ -32,11 +32,8 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
 
     uint64 public nonce;
 
-    // emitted if the recipient should receive crypto in the target blockchain
-    event RubciToNativeSwapRequest(uint256 transitTokenAmount);
-
-    // emitted if the recipient should receive tokens in the target blockchain
-    event RubciToTokenSwapRequest(uint256 transitTokenAmount);
+    // emitted when would like to go through Rubic bridge
+    event RubciSwapRequest(uint256 transitTokenAmount, bytes message, bool toNative);
 
     constructor(
         address _nativeWrap,
@@ -169,17 +166,6 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp {
                     tokenIn.safeApprove(to, type(uint256).max);
                 }
             }
-        }
-    }
-
-    function _rubicSwap(
-        uint256 srcAmtOut,
-        bool _nativeOut
-    ) internal {
-        if (_nativeOut) {
-            emit RubciToNativeSwapRequest(srcAmtOut);
-        } else {
-            emit RubciToTokenSwapRequest(srcAmtOut);
         }
     }
 

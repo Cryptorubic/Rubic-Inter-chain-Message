@@ -229,13 +229,19 @@ describe('RubicCrossChain', () => {
         describe('#transferWithSwapV2Native', () => {
             it('Should swap native and transfer through Rubic only', async () => {
                 const amountOutMin = await getAmountOutMin(ethers.utils.parseEther('0.1'));
+
+                const message = await getMessage(
+                    testMessagesContract,
+                    (await swapMain.nonce()).add('1')
+                );
+
                 await expect(
                     callTransferWithSwapV2Native(amountOutMin, {
                         amountIn: ethers.utils.parseEther('0.1')
                     })
                 )
-                    .to.emit(swapMain, 'RubciToTokenSwapRequest')
-                    .withArgs(amountOutMin);
+                    .to.emit(swapMain, 'RubciSwapRequest')
+                    .withArgs(amountOutMin, message, false);
 
                 expect(await token.balanceOf(swapMain.address)).to.be.eq(amountOutMin);
             });
@@ -268,9 +274,13 @@ describe('RubicCrossChain', () => {
                         .withArgs(ID, DST_CHAIN_ID, DEFAULT_AMOUNT_IN, wnative.address);
                 });
                 it('Correct Rubic event', async () => {
+                    const message = await getMessage(
+                        testMessagesContract,
+                        (await swapMain.nonce()).add('1')
+                    );
                     await expect(callTransferWithSwapV2Native(amountOutMin))
-                        .to.emit(swapMain, 'RubciToTokenSwapRequest')
-                        .withArgs(rubicPart);
+                        .to.emit(swapMain, 'RubciSwapRequest')
+                        .withArgs(rubicPart, message, false);
                     expect(await token.balanceOf(swapMain.address)).to.be.eq(rubicPart);
                 });
             });
@@ -282,13 +292,19 @@ describe('RubicCrossChain', () => {
                     swapToken.address,
                     token.address
                 ]);
+
+                const message = await getMessage(
+                    testMessagesContract,
+                    (await swapMain.nonce()).add('1')
+                );
+
                 await expect(
                     callTransferWithSwapV2(amountOutMin, {
                         srcPath: [swapToken.address, token.address]
                     })
                 )
-                    .to.emit(swapMain, 'RubciToTokenSwapRequest')
-                    .withArgs(amountOutMin);
+                    .to.emit(swapMain, 'RubciSwapRequest')
+                    .withArgs(amountOutMin, message, false);
 
                 expect(await token.balanceOf(swapMain.address)).to.be.eq(amountOutMin);
             });
@@ -335,14 +351,18 @@ describe('RubicCrossChain', () => {
                         .withArgs(ID, DST_CHAIN_ID, amountIn, swapToken.address);
                 });
                 it('Correct Rubic event', async () => {
+                    const message = await getMessage(
+                        testMessagesContract,
+                        (await swapMain.nonce()).add('1')
+                    );
                     await expect(
                         callTransferWithSwapV2(amountOutMin, {
                             amountIn: amountIn,
                             srcPath: [swapToken.address, token.address]
                         })
                     )
-                        .to.emit(swapMain, 'RubciToTokenSwapRequest')
-                        .withArgs(rubicPart);
+                        .to.emit(swapMain, 'RubciSwapRequest')
+                        .withArgs(rubicPart, message, false);
                     expect(await token.balanceOf(swapMain.address)).to.be.eq(rubicPart);
                 });
             });
