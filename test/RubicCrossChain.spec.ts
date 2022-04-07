@@ -3,9 +3,17 @@ import { swapContractFixtureInFork } from './shared/fixtures';
 import { Wallet } from '@ethersproject/wallet';
 import { SwapMain, TestERC20, TestMessages, WETH9 } from '../typechain-types';
 import { expect } from 'chai';
-import { DEADLINE, DST_CHAIN_ID, DEFAULT_AMOUNT_IN, VERSION } from './shared/consts';
+import {
+    DEADLINE,
+    DST_CHAIN_ID,
+    DEFAULT_AMOUNT_IN,
+    VERSION,
+    MAX_RUBIC_SWAP,
+    DEFAULT_AMOUNT_OUT_MIN
+} from './shared/consts';
 import { BigNumber as BN, BigNumberish, ContractTransaction } from 'ethers';
 import { getRouterV2 } from './shared/utils';
+import {getArtifactFromContractOutput} from "hardhat/internal/artifacts";
 
 const createFixtureLoader = waffle.createFixtureLoader;
 
@@ -25,6 +33,7 @@ describe('RubicCrossChain', () => {
     let swapMain: SwapMain;
     let router: string;
     let wnative: WETH9;
+    let chainId: number;
 
     let testMessagesContract: TestMessages;
 
@@ -61,7 +70,7 @@ describe('RubicCrossChain', () => {
                 path: [wnative.address, token.address],
                 dataInchOrPathV3: '0x',
                 deadline: DEADLINE,
-                amountOutMinimum: ethers.utils.parseEther('10')
+                amountOutMinimum: DEFAULT_AMOUNT_OUT_MIN
             },
             '10',
             nativeOut,
@@ -106,7 +115,7 @@ describe('RubicCrossChain', () => {
                 path: [wnative.address, token.address],
                 dataInchOrPathV3: '0x',
                 deadline: DEADLINE,
-                amountOutMinimum: ethers.utils.parseEther('10')
+                amountOutMinimum: DEFAULT_AMOUNT_OUT_MIN
             },
             '10',
             nativeOut,
@@ -124,6 +133,15 @@ describe('RubicCrossChain', () => {
         return (await routerV2.getAmountsOut(amountIn, path))[1];
     }
 
+    async function getAmountIn(
+        amountOut = DEFAULT_AMOUNT_OUT_MIN,
+        path = [token.address, swapToken.address]
+    ) {
+        const routerV2 = await getRouterV2(wallet, router);
+
+        return (await routerV2.getAmountsIn(amountOut, path))[0];
+    }
+
     async function getMessage(
         messagesContract: TestMessages,
         _nonce: BigNumberish,
@@ -133,7 +151,7 @@ describe('RubicCrossChain', () => {
             path = [wnative.address, token.address],
             dataInchOrPathV3 = '0x',
             deadline = DEADLINE,
-            amountOutMinimum = ethers.utils.parseEther('10'),
+            amountOutMinimum = DEFAULT_AMOUNT_OUT_MIN,
             _receiver = wallet.address,
             _nativeOut = false
         } = {}
@@ -162,15 +180,17 @@ describe('RubicCrossChain', () => {
             path = [wnative.address, token.address],
             dataInchOrPathV3 = '0x',
             deadline = DEADLINE,
-            amountOutMinimum = ethers.utils.parseEther('10'),
+            amountOutMinimum = DEFAULT_AMOUNT_OUT_MIN,
             _receiver = wallet.address,
-            _nativeOut = false
+            _nativeOut = false,
+            _srcChainId = chainId,
+            _dstChainId = DST_CHAIN_ID
         } = {}
     ): Promise<string> {
         return messagesContract.getID(
             _receiver,
-            (await ethers.provider.getNetwork()).chainId,
-            DST_CHAIN_ID,
+            _srcChainId,
+            _dstChainId,
             {
                 dex,
                 version,
@@ -187,6 +207,7 @@ describe('RubicCrossChain', () => {
     before('create fixture loader', async () => {
         [wallet, other] = await (ethers as any).getSigners();
         loadFixture = createFixtureLoader([wallet, other]);
+        chainId = (await ethers.provider.getNetwork()).chainId;
     });
 
     beforeEach('deploy fixture', async () => {
@@ -324,6 +345,43 @@ describe('RubicCrossChain', () => {
                         .withArgs(rubicPart);
                     expect(await token.balanceOf(swapMain.address)).to.be.eq(rubicPart);
                 });
+            });
+        });
+        describe('#executeMessageWithTransfer', () => {
+            beforeEach('setup for target executions', async () => {
+                await token.transfer(swapMain.address, MAX_RUBIC_SWAP);
+                await swapMain.setRubicRelayer(wallet.address);
+            });
+            it('Should swap to token', async () => {
+                const nonce = (await swapMain.nonce()).add('1');
+
+                const message = await getMessage(testMessagesContract, nonce, {
+                    path: [token.address, swapToken.address]
+                });
+                const ID = await getID(testMessagesContract, nonce, {
+                    _srcChainId: DST_CHAIN_ID,
+                    _dstChainId: chainId,
+                    path: [token.address, swapToken.address]
+                });
+
+                const amountIn = await getAmountIn();
+                const amountOut = await getAmountOutMin(amountIn, [
+                    token.address,
+                    swapToken.address
+                ]);
+
+                await expect(
+                    swapMain.executeMessageWithTransfer(
+                        ethers.constants.AddressZero,
+                        token.address,
+                        amountIn,
+                        DST_CHAIN_ID,
+                        message,
+                        ethers.constants.AddressZero
+                    )
+                )
+                    .to.emit(swapMain, 'RubicSwapDone')
+                    .withArgs(ID, amountOut, 1);
             });
         });
         //describe('#')

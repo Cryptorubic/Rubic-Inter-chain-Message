@@ -11,7 +11,8 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
-    event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status);
+    event CelerSwapDone(bytes32 id, uint256 dstAmount, SwapStatus status);
+    event RubicSwapDone(bytes32 id, uint256 dstAmount, SwapStatus status);
 
     constructor(
         address _messageBus,
@@ -44,20 +45,31 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         uint64 _srcChainId,
         bytes memory _message,
         address
-    ) external payable override returns (ExecutionStatus) {
-        //TODO: only bus
+    ) external payable override onlyRelayerOrMessageBus returns (ExecutionStatus) {
+        //TODO: require not grater than max Rubic Swap
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
+
+        uint256 dstAmount = _amount;
+        SwapStatus status;
+
         if (m.swap.version == SwapVersion.v3) {
-            _executeDstSwapV3(_token, _amount, id, m);
+            (dstAmount, status) = _executeDstSwapV3(_token, _amount, m);
         }
-        if (m.swap.version == SwapVersion.bridge) {
-            _executeDstBridge(_token, _amount, id, m);
+        else if (m.swap.version == SwapVersion.bridge) {
+            _executeDstBridge(_token, _amount, m);
+            status = SwapStatus.Succeeded;
         }
-        if (m.swap.version == SwapVersion.v2) {
-            _executeDstSwapV2(_token, _amount, id, m);
+        else if (m.swap.version == SwapVersion.v2) {
+            (dstAmount, status) = _executeDstSwapV2(_token, _amount, m);
         } else {
-            _executeDstSwapInch(_token, _amount, id, m);
+            (dstAmount, status) = _executeDstSwapInch(_token, _amount, m);
+        }
+
+        if (msg.sender == messageBus) {
+            emit CelerSwapDone(id, dstAmount, status);
+        } else {
+            emit RubicSwapDone(id, dstAmount, status);
         }
         // always return true since swap failure is already handled in-place
         return ExecutionStatus.Success;
@@ -75,7 +87,7 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         uint64 _srcChainId,
         bytes memory _message,
         address
-    ) external payable override returns (ExecutionStatus) {
+    ) external payable override onlyRelayerOrMessageBus returns (ExecutionStatus) {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
 
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
@@ -84,7 +96,7 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         } else {
             _sendToken(_token, _amount, m.receiver, m.nativeOut);
         }
-        emit SwapRequestDone(id, 0, SwapStatus.Failed);
+        emit CelerSwapDone(id, 0, SwapStatus.Failed);
         // always return false to mark this transfer as failed since if this function is called then there nothing more
         // we can do in this app as the swap failures are already handled in executeMessageWithTransfer
         return ExecutionStatus.Fail;
@@ -95,7 +107,7 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         uint256 _amount,
         bytes calldata _message,
         address
-    ) external payable override returns (ExecutionStatus) {
+    ) external payable override onlyRelayerOrMessageBus returns (ExecutionStatus) {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
         if (m.swap.version == SwapVersion.v3) {
             _sendToken(_token, _amount, m.receiver, m.nativeOut);
@@ -108,17 +120,13 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
     function _executeDstSwapInch(
         address _token,
         uint256 _amount,
-        bytes32 _id,
         SwapRequestDest memory _msgDst
-    ) private {
+    ) private returns (uint256 dstAmount, SwapStatus status) {
         require(
             _token == _msgDst.swap.path[0],
             'bridged token must be the same as the first token in destination swap path'
         );
         require(_msgDst.swap.path.length > 1, 'dst swap expected');
-
-        uint256 dstAmount;
-        SwapStatus status = SwapStatus.Succeeded;
 
         SwapInfoInch memory _dstSwap = SwapInfoInch({
             dex: _msgDst.swap.dex,
@@ -143,15 +151,12 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
             dstAmount = _amount;
             status = SwapStatus.Fallback;
         }
-
-        emit SwapRequestDone(_id, dstAmount, status);
     }
 
     // no need to swap, directly send the bridged token to user
     function _executeDstBridge(
         address _token,
         uint256 _amount,
-        bytes32 _id,
         SwapRequestDest memory _msgDst
     ) private {
         require(
@@ -160,16 +165,13 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         );
         require(_msgDst.swap.path.length == 1, 'dst bridge expected');
         _sendToken(_msgDst.swap.path[0], _amount, _msgDst.receiver, _msgDst.nativeOut);
-        SwapStatus status = SwapStatus.Succeeded;
-        emit SwapRequestDone(_id, _amount, status);
     }
 
     function _executeDstSwapV2(
         address _token,
         uint256 _amount,
-        bytes32 _id,
         SwapRequestDest memory _msgDst
-    ) private {
+    ) private returns (uint256 dstAmount, SwapStatus status){
         // TODO add as modifier
         require(
             _token == _msgDst.swap.path[0],
@@ -177,9 +179,6 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         );
         // TODO add as modifier
         require(_msgDst.swap.path.length > 1, 'dst swap expected');
-
-        uint256 dstAmount;
-        SwapStatus status = SwapStatus.Succeeded;
 
         SwapInfoV2 memory _dstSwap = SwapInfoV2({
             dex: _msgDst.swap.dex,
@@ -201,24 +200,18 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         }
 
         status = SwapStatus.Succeeded;
-
-        emit SwapRequestDone(_id, dstAmount, status);
     }
 
     function _executeDstSwapV3(
         address _token,
         uint256 _amount,
-        bytes32 _id,
         SwapRequestDest memory _msgDst
-    ) private {
+    ) private returns (uint256 dstAmount, SwapStatus status) {
         require(
             _token == address(_getFirstBytes20(_msgDst.swap.dataInchOrPathV3)),
             'bridged token must be the same as the first token in destination swap path'
         );
         require(_msgDst.swap.dataInchOrPathV3.length > 20, 'dst swap expected');
-
-        uint256 dstAmount;
-        SwapStatus status = SwapStatus.Succeeded;
 
         SwapInfoV3 memory _dstSwap = SwapInfoV3({
             dex: _msgDst.swap.dex,
@@ -238,8 +231,6 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
             dstAmount = _amount;
             status = SwapStatus.Fallback;
         }
-
-        emit SwapRequestDone(_id, dstAmount, status);
     }
 
     function _sendToken(
@@ -258,6 +249,29 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         }
     }
 
+    // returns an array of the supported DEXes
+    function getSupportedDEXes() external view returns (address[] memory) {
+        return supportedDEXes.values();
+    }
+
+    function addSupportedDEX(address _dex) external onlyOwner {
+        supportedDEXes.add(_dex);
+    }
+
+    function removeSupportedDEX(address _dex) external onlyOwner {
+        supportedDEXes.remove(_dex);
+    }
+
+    // sets the maximum swap amount going through Rubic bridge
+    function setMaxRubicSwap(uint _amount) external onlyOwner {
+        maxRubicSwap = _amount;
+    }
+
+    // TODO: switch to AccessControl
+    function setRubicRelayer(address _relayer) external onlyOwner {
+        RubicRelayer = _relayer;
+    }
+
     function setRubicFee(uint256 _feeRubic) external onlyOwner {
         require(_feeRubic < 5000000);
         feeRubic = _feeRubic;
@@ -272,7 +286,7 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         supportedDex[_dex] = _enabled;
     }*/
 
-    function sweepTokens(IERC20 token) external onlyOwner {
+    function sweepTokens(IERC20 token) external onlyOwner { // TODO: decentralization
         token.safeTransfer(msg.sender, token.balanceOf(address(this)));
     }
 
