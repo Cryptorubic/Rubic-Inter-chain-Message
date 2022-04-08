@@ -13,7 +13,7 @@ import {
 } from './shared/consts';
 import { BigNumber as BN, BigNumberish, ContractTransaction } from 'ethers';
 import { getRouterV2 } from './shared/utils';
-import {getArtifactFromContractOutput} from "hardhat/internal/artifacts";
+const hre = require('hardhat');
 
 const createFixtureLoader = waffle.createFixtureLoader;
 
@@ -372,36 +372,67 @@ describe('RubicCrossChain', () => {
                 await token.transfer(swapMain.address, MAX_RUBIC_SWAP);
                 await swapMain.setRubicRelayer(wallet.address);
             });
-            it('Should swap to token', async () => {
-                const nonce = (await swapMain.nonce()).add('1');
+            describe.only('target swap should emit correct event', async () => {
+                let nonce: BN;
+                let message: string;
+                let ID: string;
+                let amountIn: BN;
+                let amountOut: BN;
 
-                const message = await getMessage(testMessagesContract, nonce, {
-                    path: [token.address, swapToken.address]
-                });
-                const ID = await getID(testMessagesContract, nonce, {
-                    _srcChainId: DST_CHAIN_ID,
-                    _dstChainId: chainId,
-                    path: [token.address, swapToken.address]
-                });
+                beforeEach('setup before swap', async () => {
+                    nonce = (await swapMain.nonce()).add('1');
 
-                const amountIn = await getAmountIn();
-                const amountOut = await getAmountOutMin(amountIn, [
-                    token.address,
-                    swapToken.address
-                ]);
+                    message = await getMessage(testMessagesContract, nonce, {
+                        path: [token.address, swapToken.address]
+                    });
+                    ID = await getID(testMessagesContract, nonce, {
+                        _srcChainId: DST_CHAIN_ID,
+                        _dstChainId: chainId,
+                        path: [token.address, swapToken.address]
+                    });
 
-                await expect(
-                    swapMain.executeMessageWithTransfer(
-                        ethers.constants.AddressZero,
+                    amountIn = await getAmountIn();
+                    amountOut = await getAmountOutMin(amountIn, [
                         token.address,
-                        amountIn,
-                        DST_CHAIN_ID,
-                        message,
-                        ethers.constants.AddressZero
+                        swapToken.address
+                    ]);
+                });
+                it('Rubic swap', async () => {
+                    await expect(
+                        swapMain.executeMessageWithTransfer(
+                            ethers.constants.AddressZero,
+                            token.address,
+                            amountIn,
+                            DST_CHAIN_ID,
+                            message,
+                            ethers.constants.AddressZero
+                        )
                     )
-                )
-                    .to.emit(swapMain, 'RubicSwapDone')
-                    .withArgs(ID, amountOut, 1);
+                        .to.emit(swapMain, 'RubicSwapDone')
+                        .withArgs(ID, amountOut, 1);
+                });
+                it('Celer swap', async () => {
+                    await hre.network.provider.request({
+                        method: 'hardhat_impersonateAccount',
+                        params: [TEST_BUS]
+                    });
+                    const bus = await ethers.getSigner(TEST_BUS);
+
+                    const _swapMain = swapMain.connect(bus);
+
+                    await expect(
+                        _swapMain.executeMessageWithTransfer(
+                            ethers.constants.AddressZero,
+                            token.address,
+                            amountIn,
+                            DST_CHAIN_ID,
+                            message,
+                            ethers.constants.AddressZero
+                        )
+                    )
+                        .to.emit(swapMain, 'CelerSwapDone')
+                        .withArgs(ID, amountOut, 1);
+                });
             });
         });
         //describe('#')
