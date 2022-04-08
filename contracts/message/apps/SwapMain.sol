@@ -46,7 +46,6 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         bytes memory _message,
         address
     ) external payable override onlyRelayerOrMessageBus returns (ExecutionStatus) {
-        //TODO: require not grater than max Rubic Swap
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
 
@@ -69,6 +68,7 @@ contract SwapMain is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwa
         if (msg.sender == messageBus) {
             emit CelerSwapDone(id, dstAmount, status);
         } else {
+            require(_amount <= maxRubicSwap, 'too much transit token requested');
             emit RubicSwapDone(id, dstAmount, status);
         }
         // always return true since swap failure is already handled in-place
