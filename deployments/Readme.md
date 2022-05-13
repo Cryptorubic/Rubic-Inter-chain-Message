@@ -1,5 +1,8 @@
 **Deployments**
 
+Ethereum
+[0x53dC7535028e2fcaCa0d847AD108b9240C0801b1](https://etherscan.io/address/0x53dc7535028e2fcaca0d847ad108b9240c0801b1)
+
 Fantom
 [0x6B362d1C67D7E4Ff1467dFA38dE642f9D125E8Ad](https://ftmscan.com/address/0x6B362d1C67D7E4Ff1467dFA38dE642f9D125E8Ad)
 

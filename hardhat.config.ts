@@ -53,6 +53,7 @@ module.exports = {
       url: `https://mainnet.infura.io/v3/${INFURA_ID_PROJECT}`,
       chainId: 1,
       accounts: [`0x${MNEMONIC || '1000000000000000000000000000000000000000000000000000000000000000'}`],
+      gasPrice: 103000000000, // 103 GWEI
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${INFURA_ID_PROJECT}`,
