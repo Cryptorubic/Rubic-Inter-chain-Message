@@ -14,3 +14,9 @@ Polygon
 
 Avalanche
 [0xd82bf61411Ce2F6bd46Fd1e3b0459979809D4787](https://snowtrace.io/address/0xd82bf61411Ce2F6bd46Fd1e3b0459979809D4787)
+
+Arbitrum
+[0x53dC7535028e2fcaCa0d847AD108b9240C0801b1](https://arbiscan.io/address/0x53dC7535028e2fcaCa0d847AD108b9240C0801b1)
+
+Aurora
+[0x53dC7535028e2fcaCa0d847AD108b9240C0801b1](https://aurorascan.dev/address/0x53dC7535028e2fcaCa0d847AD108b9240C0801b1)
