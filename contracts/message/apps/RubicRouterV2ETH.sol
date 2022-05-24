@@ -8,7 +8,7 @@ import './TransferSwapInch.sol';
 import './BridgeSwap.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
-contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwap, ReentrancyGuard {
+contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwap, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -60,7 +60,10 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
-
+        // Celer in Arbitrum send native. Wrap native to execute swaps
+        if (_token == nativeWrap){
+            IWETH(nativeWrap).deposit{value: _amount}();
+        }
         _amount = _calculatePlatformFee(m.swap.integrator, _token, _amount);
 
         if (m.swap.version == SwapVersion.v3) {
@@ -102,6 +105,9 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
 
+        if (_token == nativeWrap){
+            IWETH(nativeWrap).deposit{value: _amount}();
+        }
         _sendToken(_token, _amount, m.receiver);
 
         SwapStatus status = SwapStatus.Fallback;
@@ -132,6 +138,9 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
         bytes32 id = _computeSwapRequestId(m.receiver, uint64(block.chainid), m.dstChainId, _message);
 
+        if (_token == nativeWrap){
+            IWETH(nativeWrap).deposit{value: _amount}();
+        }
         _sendToken(_token, _amount, m.receiver);
 
         SwapStatus status = SwapStatus.Failed;

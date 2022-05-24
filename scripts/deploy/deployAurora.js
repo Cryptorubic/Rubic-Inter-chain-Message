@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 async function main() {
-  const CrossChainSwap = await hre.ethers.getContractFactory("RubicRouterV2");
+  const CrossChainSwap = await hre.ethers.getContractFactory("RubicRouterV2ETH");
   /*
    * constructor
    *    address _messageBus,
