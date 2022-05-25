@@ -107,29 +107,29 @@ module.exports = {
     },
   },
   etherscan: {
-    // apiKey: {
-    //   mainnet: process.env.ETHERSCAN_API_KEY,
-    //   ropsten: process.env.ETHERSCAN_API_KEY,
-    //   rinkeby: process.env.ETHERSCAN_API_KEY,
-    //   goerli: process.env.ETHERSCAN_API_KEY,
-    //   kovan: process.env.ETHERSCAN_API_KEY,
-    //   // binance smart chain
-    //   bsc: process.env.BSCSCAN_API_KEY,
-    //   bscTestnet: process.env.BSCSCAN_API_KEY,
-    //   // fantom mainnet
-    //   opera: process.env.FANTOMSCAN_API_KEY,
-    //   ftmTestnet: process.env.FANTOMSCAN_API_KEY,
-    //   // polygon
-    //   polygon: process.env.POLYGONSCAN_API_KEY,
-    //   polygonMumbai: process.env.POLYGONSCAN_API_KEY,
-    //   // avalanche
-    //   avalanche: process.env.AVALANCHE_API_KEY,
-    //   avalancheFujiTestnet: process.env.AVALANCHE_API_KEY,
-    //   // arbitrum
-    //   arbitrumOne: process.env.ARBITRUM_API_KEY,
-    //   arbitrumTestnet: process.env.ARBITRUM_API_KEY,
-    // },
-    apiKey: `${process.env.AURORA_API_KEY}`,
+    apiKey: {
+      mainnet: process.env.ETHERSCAN_API_KEY,
+      ropsten: process.env.ETHERSCAN_API_KEY,
+      rinkeby: process.env.ETHERSCAN_API_KEY,
+      goerli: process.env.ETHERSCAN_API_KEY,
+      kovan: process.env.ETHERSCAN_API_KEY,
+      // binance smart chain
+      bsc: process.env.BSCSCAN_API_KEY,
+      bscTestnet: process.env.BSCSCAN_API_KEY,
+      // fantom mainnet
+      opera: process.env.FANTOMSCAN_API_KEY,
+      ftmTestnet: process.env.FANTOMSCAN_API_KEY,
+      // polygon
+      polygon: process.env.POLYGONSCAN_API_KEY,
+      polygonMumbai: process.env.POLYGONSCAN_API_KEY,
+      // avalanche
+      avalanche: process.env.AVALANCHE_API_KEY,
+      avalancheFujiTestnet: process.env.AVALANCHE_API_KEY,
+      // arbitrum
+      arbitrumOne: process.env.ARBITRUM_API_KEY,
+      arbitrumTestnet: process.env.ARBITRUM_API_KEY,
+    },
+    //apiKey: `${process.env.AURORA_API_KEY}`,
   },
   solidity: {
     compilers: [DEFAULT_COMPILER_SETTINGS]
