@@ -95,7 +95,6 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         override
         onlyMessageBus
         nonReentrant
-        whenNotPaused
         onlyExecutor(_executor)
         returns (ExecutionStatus)
     {
@@ -103,9 +102,8 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
 
-        _sendToken(_token, _amount, m.receiver);
-
-        SwapStatus status = SwapStatus.Fallback;
+        // Failed status means user hasn't received funds
+        SwapStatus status = SwapStatus.Failed;
         txStatusById[id] = status;
         emit SwapRequestDone(id, _amount, status);
         // always return Fail to mark this transfer as failed since if this function is called then there nothing more
@@ -135,7 +133,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
         _sendToken(_token, _amount, m.receiver);
 
-        SwapStatus status = SwapStatus.Failed;
+        SwapStatus status = SwapStatus.Fallback;
         txStatusById[id] = status;
         emit SwapRequestDone(id, _amount, status);
 
@@ -312,6 +310,13 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         integratorCollectedFee[msg.sender][_token] -= _amount;
     }
 
+    function integratorCollectFee(address _integrator, address _token, uint256 _amount) external nonReentrant onlyManager {
+        require(integratorFee[_integrator] > 0, 'not an integrator');
+        require(integratorCollectedFee[_integrator][_token] >= _amount, 'not enough fees');
+        _sendToken(_token, _amount, _integrator);
+        integratorCollectedFee[_integrator][_token] -= _amount;
+    }
+
     function rubicCollectPlatformFee(address _token, uint256 _amount) external onlyManager {
         require(collectedFee[_token] >= _amount, 'amount too big');
         _sendToken(_token, _amount, msg.sender);
@@ -321,6 +326,17 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     function rubicCollectCryptoFee(uint256 _amount) external onlyManager {
         (bool sent, ) = msg.sender.call{value: _amount, gas: 50000}('');
         require(sent, 'failed to send native');
+    }
+
+    function changeTxStatus(bytes32 _id, SwapStatus _status) external onlyManager {
+        txStatusById[_id] = _status;
+    }
+
+    function refundByHand(bytes32 _id, address _token, uint256 _amount, address _to) external nonReentrant {
+        require(hasRole(MANAGER, msg.sender) || hasRole(EXECUTOR, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        require(txStatusById[_id] != SwapStatus.Succeeded && txStatusById[_id] != SwapStatus.Fallback);
+        _sendToken(_token, _amount, _to);
+        txStatusById[_id] = SwapStatus.Fallback;
     }
 
     function setNativeWrap(address _nativeWrap) external onlyManager {

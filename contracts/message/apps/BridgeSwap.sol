@@ -16,7 +16,7 @@ contract BridgeSwap is SwapBase {
         address _srcBridgeToken,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
-    ) external payable onlyEOA {
+    ) external payable onlyEOA whenNotPaused {
         IERC20(_srcBridgeToken).safeTransferFrom(msg.sender, address(this), _amountIn);
 
         uint256 _fee = _calculateCryptoFee(msg.value, _dstChainId);
@@ -39,7 +39,7 @@ contract BridgeSwap is SwapBase {
         address _srcBridgeToken,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
-    ) external payable onlyEOA {
+    ) external payable onlyEOA whenNotPaused {
         require(_srcBridgeToken == nativeWrap, 'token mismatch');
         require(msg.value >= _amountIn, 'Amount insufficient');
         IWETH(nativeWrap).deposit{value: _amountIn}();
