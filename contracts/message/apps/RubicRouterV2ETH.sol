@@ -61,10 +61,11 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
     {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
-        // Celer in Arbitrum send native. Wrap native to execute swaps
+
         if (_token == nativeWrap){
             IWETH(nativeWrap).deposit{value: _amount}();
         }
+
         _amount = _calculatePlatformFee(m.swap.integrator, _token, _amount);
 
         if (m.swap.version == SwapVersion.v3) {
@@ -98,7 +99,6 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
         override
         onlyMessageBus
         nonReentrant
-        whenNotPaused
         onlyExecutor(_executor)
         returns (ExecutionStatus)
     {
@@ -106,12 +106,8 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
 
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
 
-        if (_token == nativeWrap){
-            IWETH(nativeWrap).deposit{value: _amount}();
-        }
-        _sendToken(_token, _amount, m.receiver);
-
-        SwapStatus status = SwapStatus.Fallback;
+        // Failed status means user hasn't received funds
+        SwapStatus status = SwapStatus.Failed;
         txStatusById[id] = status;
         emit SwapRequestDone(id, _amount, status);
         // always return Fail to mark this transfer as failed since if this function is called then there nothing more
@@ -142,9 +138,10 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
         if (_token == nativeWrap){
             IWETH(nativeWrap).deposit{value: _amount}();
         }
+
         _sendToken(_token, _amount, m.receiver);
 
-        SwapStatus status = SwapStatus.Failed;
+        SwapStatus status = SwapStatus.Fallback;
         txStatusById[id] = status;
         emit SwapRequestDone(id, _amount, status);
 
@@ -321,6 +318,13 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
         integratorCollectedFee[msg.sender][_token] -= _amount;
     }
 
+    function integratorCollectFee(address _integrator, address _token, uint256 _amount) external nonReentrant onlyManager {
+        require(integratorFee[_integrator] > 0, 'not an integrator');
+        require(integratorCollectedFee[_integrator][_token] >= _amount, 'not enough fees');
+        _sendToken(_token, _amount, _integrator);
+        integratorCollectedFee[_integrator][_token] -= _amount;
+    }
+
     function rubicCollectPlatformFee(address _token, uint256 _amount) external onlyManager {
         require(collectedFee[_token] >= _amount, 'amount too big');
         _sendToken(_token, _amount, msg.sender);
@@ -330,6 +334,17 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
     function rubicCollectCryptoFee(uint256 _amount) external onlyManager {
         (bool sent, ) = msg.sender.call{value: _amount, gas: 50000}('');
         require(sent, 'failed to send native');
+    }
+
+    function changeTxStatus(bytes32 _id, SwapStatus _status) external onlyManager {
+        txStatusById[_id] = _status;
+    }
+
+    function manualRefund(bytes32 _id, address _token, uint256 _amount, address _to) external nonReentrant {
+        require(hasRole(MANAGER, msg.sender) || hasRole(EXECUTOR, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+        require(txStatusById[_id] != SwapStatus.Succeeded && txStatusById[_id] != SwapStatus.Fallback);
+        _sendToken(_token, _amount, _to);
+        txStatusById[_id] = SwapStatus.Fallback;
     }
 
     function setNativeWrap(address _nativeWrap) external onlyManager {

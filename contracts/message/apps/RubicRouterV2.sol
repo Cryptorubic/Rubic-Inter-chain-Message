@@ -332,7 +332,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         txStatusById[_id] = _status;
     }
 
-    function refundByHand(bytes32 _id, address _token, uint256 _amount, address _to) external nonReentrant {
+    function manualRefund(bytes32 _id, address _token, uint256 _amount, address _to) external nonReentrant {
         require(hasRole(MANAGER, msg.sender) || hasRole(EXECUTOR, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         require(txStatusById[_id] != SwapStatus.Succeeded && txStatusById[_id] != SwapStatus.Fallback);
         _sendToken(_token, _amount, _to);
