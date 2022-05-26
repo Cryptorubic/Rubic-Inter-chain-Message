@@ -75,12 +75,7 @@ contract BridgeSwap is SwapBase {
 
         require(_dstSwap.path.length > 0, 'empty dst swap path');
         bytes memory message = abi.encode(
-            SwapRequestDest({
-                swap: _dstSwap,
-                receiver: msg.sender,
-                nonce: nonce,
-                dstChainId: _dstChainId
-            })
+            SwapRequestDest({swap: _dstSwap, receiver: msg.sender, nonce: nonce, dstChainId: _dstChainId})
         );
         bytes32 id = _computeSwapRequestId(msg.sender, _chainId, _dstChainId, message);
 

@@ -89,15 +89,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         uint64 _srcChainId,
         bytes calldata _message,
         address _executor
-    )
-        external
-        payable
-        override
-        onlyMessageBus
-        nonReentrant
-        onlyExecutor(_executor)
-        returns (ExecutionStatus)
-    {
+    ) external payable override onlyMessageBus nonReentrant onlyExecutor(_executor) returns (ExecutionStatus) {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
 
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
@@ -300,25 +292,42 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         return supportedDEXes.values();
     }
 
-    function sweepTokens(address _token, uint256 _amount, bool _nativeOut) external onlyManager {
+    function sweepTokens(
+        address _token,
+        uint256 _amount,
+        bool _nativeOut
+    ) external onlyManager {
         _sendToken(_token, _amount, msg.sender, _nativeOut);
     }
 
-    function integratorCollectFee(address _token, uint256 _amount, bool _nativeOut) external nonReentrant {
+    function integratorCollectFee(
+        address _token,
+        uint256 _amount,
+        bool _nativeOut
+    ) external nonReentrant {
         require(integratorFee[msg.sender] > 0, 'not an integrator');
         require(integratorCollectedFee[msg.sender][_token] >= _amount, 'not enough fees');
         _sendToken(_token, _amount, msg.sender, _nativeOut);
         integratorCollectedFee[msg.sender][_token] -= _amount;
     }
 
-    function integratorCollectFee(address _integrator, address _token, uint256 _amount, bool _nativeOut) external nonReentrant onlyManager {
+    function integratorCollectFee(
+        address _integrator,
+        address _token,
+        uint256 _amount,
+        bool _nativeOut
+    ) external nonReentrant onlyManager {
         require(integratorFee[_integrator] > 0, 'not an integrator');
         require(integratorCollectedFee[_integrator][_token] >= _amount, 'not enough fees');
         _sendToken(_token, _amount, _integrator, _nativeOut);
         integratorCollectedFee[_integrator][_token] -= _amount;
     }
 
-    function rubicCollectPlatformFee(address _token, uint256 _amount, bool _nativeOut) external onlyManager {
+    function rubicCollectPlatformFee(
+        address _token,
+        uint256 _amount,
+        bool _nativeOut
+    ) external onlyManager {
         require(collectedFee[_token] >= _amount, 'amount too big');
         _sendToken(_token, _amount, msg.sender, _nativeOut);
         collectedFee[_token] -= _amount;
@@ -333,8 +342,16 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         txStatusById[_id] = _status;
     }
 
-    function manualRefund(bytes32 _id, address _token, uint256 _amount, address _to, bool _nativeOut) external nonReentrant {
-        require(hasRole(MANAGER, msg.sender) || hasRole(EXECUTOR, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+    function manualRefund(
+        bytes32 _id,
+        address _token,
+        uint256 _amount,
+        address _to,
+        bool _nativeOut
+    ) external nonReentrant {
+        require(
+            hasRole(MANAGER, msg.sender) || hasRole(EXECUTOR, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
+        );
         require(txStatusById[_id] != SwapStatus.Succeeded && txStatusById[_id] != SwapStatus.Fallback);
         _sendToken(_token, _amount, _to, _nativeOut);
         txStatusById[_id] = SwapStatus.Fallback;
