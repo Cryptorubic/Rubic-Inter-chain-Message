@@ -110,6 +110,7 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp, AccessControl, Pausab
 
     struct SwapInfoDest {
         address dex; // dex address
+        bool nativeOut;
         address integrator;
         SwapVersion version; // identifies swap type
         address[] path; // path address for v2 and inch

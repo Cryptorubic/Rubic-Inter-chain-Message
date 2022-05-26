@@ -84,7 +84,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
      */
     function executeMessageWithTransferFallback(
         address, // _sender
-        address _token,
+        address, // _token
         uint256 _amount,
         uint64 _srcChainId,
         bytes calldata _message,
@@ -131,7 +131,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
         bytes32 id = _computeSwapRequestId(m.receiver, uint64(block.chainid), m.dstChainId, _message);
 
-        _sendToken(_token, _amount, m.receiver);
+        _sendToken(_token, _amount, m.receiver, m.swap.nativeOut);
 
         SwapStatus status = SwapStatus.Fallback;
         txStatusById[id] = status;
@@ -152,7 +152,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
             'bridged token must be the same as the first token in destination swap path'
         );
         require(_msgDst.swap.path.length == 1, 'dst bridge expected');
-        _sendToken(_msgDst.swap.path[0], _amount, _msgDst.receiver);
+        _sendToken(_msgDst.swap.path[0], _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
 
         SwapStatus status;
         status = SwapStatus.Succeeded;
@@ -186,12 +186,12 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         bool success;
         (success, dstAmount) = _trySwapV2(_dstSwap, _amount);
         if (success) {
-            _sendToken(_dstSwap.path[_dstSwap.path.length - 1], dstAmount, _msgDst.receiver);
+            _sendToken(_dstSwap.path[_dstSwap.path.length - 1], dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
             status = SwapStatus.Succeeded;
             txStatusById[_id] = status;
         } else {
             // handle swap failure, send the received token directly to receiver
-            _sendToken(_token, _amount, _msgDst.receiver);
+            _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
             dstAmount = _amount;
             status = SwapStatus.Fallback;
             txStatusById[_id] = status;
@@ -225,12 +225,12 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         bool success;
         (success, dstAmount) = _trySwapV3(_dstSwap, _amount);
         if (success) {
-            _sendToken(address(_getLastBytes20(_dstSwap.path)), dstAmount, _msgDst.receiver);
+            _sendToken(address(_getLastBytes20(_dstSwap.path)), dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
             status = SwapStatus.Succeeded;
             txStatusById[_id] = status;
         } else {
             // handle swap failure, send the received token directly to receiver
-            _sendToken(_token, _amount, _msgDst.receiver);
+            _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
             dstAmount = _amount;
             status = SwapStatus.Fallback;
             txStatusById[_id] = status;
@@ -242,9 +242,10 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     function _sendToken(
         address _token,
         uint256 _amount,
-        address _receiver
+        address _receiver,
+        bool _nativeOut
     ) private {
-        if (_token == nativeWrap) {
+        if (_token == nativeWrap && _nativeOut == true) {
             IWETH(nativeWrap).withdraw(_amount);
             (bool sent, ) = _receiver.call{value: _amount, gas: 50000}('');
             require(sent, 'failed to send native');
@@ -299,27 +300,27 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         return supportedDEXes.values();
     }
 
-    function sweepTokens(address _token, uint256 _amount) external onlyManager {
-        _sendToken(_token, _amount, msg.sender);
+    function sweepTokens(address _token, uint256 _amount, bool _nativeOut) external onlyManager {
+        _sendToken(_token, _amount, msg.sender, _nativeOut);
     }
 
-    function integratorCollectFee(address _token, uint256 _amount) external nonReentrant {
+    function integratorCollectFee(address _token, uint256 _amount, bool _nativeOut) external nonReentrant {
         require(integratorFee[msg.sender] > 0, 'not an integrator');
         require(integratorCollectedFee[msg.sender][_token] >= _amount, 'not enough fees');
-        _sendToken(_token, _amount, msg.sender);
+        _sendToken(_token, _amount, msg.sender, _nativeOut);
         integratorCollectedFee[msg.sender][_token] -= _amount;
     }
 
-    function integratorCollectFee(address _integrator, address _token, uint256 _amount) external nonReentrant onlyManager {
+    function integratorCollectFee(address _integrator, address _token, uint256 _amount, bool _nativeOut) external nonReentrant onlyManager {
         require(integratorFee[_integrator] > 0, 'not an integrator');
         require(integratorCollectedFee[_integrator][_token] >= _amount, 'not enough fees');
-        _sendToken(_token, _amount, _integrator);
+        _sendToken(_token, _amount, _integrator, _nativeOut);
         integratorCollectedFee[_integrator][_token] -= _amount;
     }
 
-    function rubicCollectPlatformFee(address _token, uint256 _amount) external onlyManager {
+    function rubicCollectPlatformFee(address _token, uint256 _amount, bool _nativeOut) external onlyManager {
         require(collectedFee[_token] >= _amount, 'amount too big');
-        _sendToken(_token, _amount, msg.sender);
+        _sendToken(_token, _amount, msg.sender, _nativeOut);
         collectedFee[_token] -= _amount;
     }
 
@@ -332,10 +333,10 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         txStatusById[_id] = _status;
     }
 
-    function manualRefund(bytes32 _id, address _token, uint256 _amount, address _to) external nonReentrant {
+    function manualRefund(bytes32 _id, address _token, uint256 _amount, address _to, bool _nativeOut) external nonReentrant {
         require(hasRole(MANAGER, msg.sender) || hasRole(EXECUTOR, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
         require(txStatusById[_id] != SwapStatus.Succeeded && txStatusById[_id] != SwapStatus.Fallback);
-        _sendToken(_token, _amount, _to);
+        _sendToken(_token, _amount, _to, _nativeOut);
         txStatusById[_id] = SwapStatus.Fallback;
     }
 

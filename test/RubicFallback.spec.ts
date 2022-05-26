@@ -1,7 +1,7 @@
 import { ethers, network, waffle } from 'hardhat';
 import { swapContractFixtureInFork } from './shared/fixtures';
 import { Wallet } from '@ethersproject/wallet';
-import { RubicRouterV2, TestERC20, TestMessages, WETH9 } from '../typechain-types';
+import { RubicRouterV2, TestERC20, TestMessages, WETH9 } from '../typechain';
 import { expect } from 'chai';
 import {
     DEADLINE,
@@ -51,12 +51,14 @@ describe('RubicFallback', () => {
             pathV3 = '0x',
             deadline = DEADLINE,
             amountOutMinimum = DEFAULT_AMOUNT_OUT_MIN,
-            _receiver = wallet.address
+            _receiver = wallet.address,
+            nativeOut = true
         } = {}
     ): Promise<string> {
         return messagesContract.getMessage(
             {
                 dex,
+                nativeOut,
                 integrator,
                 version,
                 path,
@@ -86,7 +88,7 @@ describe('RubicFallback', () => {
             deadline = DEADLINE,
             amountOutMinimum = DEFAULT_AMOUNT_OUT_MIN,
             _receiver = wallet.address,
-            _nativeOut = false,
+            nativeOut = false,
             _srcChainId = chainId,
             _dstChainId = DST_CHAIN_ID
         } = {}
@@ -97,6 +99,7 @@ describe('RubicFallback', () => {
             _dstChainId,
             {
                 dex,
+                nativeOut,
                 integrator,
                 version,
                 path,
@@ -225,7 +228,7 @@ describe('RubicFallback', () => {
                     ).to.emit(swapMain, 'SwapRequestDone');
                     //.withArgs(ID, DEFAULT_AMOUNT_IN_USDC, '3');
                     const balanceAfter = await transitToken.balanceOf(wallet.address);
-                    await expect(balanceBefore.add(DEFAULT_AMOUNT_IN_USDC)).to.be.eq(balanceAfter);
+                    await expect(balanceBefore).to.be.eq(balanceAfter);
                 });
 
                 it('Should successfully fallback token with failed V3', async () => {
@@ -247,7 +250,7 @@ describe('RubicFallback', () => {
                         })
                     ).to.emit(swapMain, 'SwapRequestDone');
                     const balanceAfter = await transitToken.balanceOf(wallet.address);
-                    await expect(balanceBefore.add(DEFAULT_AMOUNT_IN_USDC)).to.be.eq(balanceAfter);
+                    await expect(balanceBefore).to.be.eq(balanceAfter);
                 });
 
                 it('Should successfully fallback token with failed V2', async () => {
@@ -265,7 +268,7 @@ describe('RubicFallback', () => {
                         })
                     ).to.emit(swapMain, 'SwapRequestDone');
                     const balanceAfter = await transitToken.balanceOf(wallet.address);
-                    await expect(balanceBefore.add(DEFAULT_AMOUNT_IN_USDC)).to.be.eq(balanceAfter);
+                    await expect(balanceBefore).to.be.eq(balanceAfter);
                 });
             });
 

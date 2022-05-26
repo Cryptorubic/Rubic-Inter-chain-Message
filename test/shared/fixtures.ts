@@ -1,10 +1,10 @@
 import { Fixture } from 'ethereum-waffle';
 import { ethers, network } from 'hardhat';
-import { TestERC20 } from '../../typechain-types';
-import { RubicRouterV2 } from '../../typechain-types';
-import { WETH9 } from '../../typechain-types';
-import { TestMessages } from '../../typechain-types';
-import { MessageBusSender } from '../../typechain-types';
+import { TestERC20 } from '../../typechain';
+import { RubicRouterV2 } from '../../typechain';
+import { WETH9 } from '../../typechain';
+import { TestMessages } from '../../typechain';
+import { MessageBusSender } from '../../typechain';
 import TokenJSON from '../../artifacts/contracts/test/TestERC20.sol/TestERC20.json';
 import WETHJSON from '../../artifacts/contracts/test/WETH9.sol/WETH9.json';
 import MessageBusJSON from '../../artifacts/contracts/test/MessageBusSender.sol/MessageBusSender.json';

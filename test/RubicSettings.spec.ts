@@ -1,19 +1,9 @@
 import { ethers, network, waffle } from 'hardhat';
 import { swapContractFixtureInFork } from './shared/fixtures';
 import { Wallet } from '@ethersproject/wallet';
-import { RubicRouterV2, TestERC20, TestMessages, WETH9 } from '../typechain-types';
+import { RubicRouterV2, TestERC20, TestMessages, WETH9 } from '../typechain';
 import { expect } from 'chai';
-import {
-    DEADLINE,
-    DST_CHAIN_ID,
-    VERSION,
-    ZERO_ADDRESS,
-    DEFAULT_AMOUNT_OUT_MIN,
-    EXECUTOR_ADDRESS,
-    INTEGRATOR,
-    DEFAULT_AMOUNT_IN_USDC,
-    DEFAULT_AMOUNT_IN
-} from './shared/consts';
+import { DEFAULT_AMOUNT_IN_USDC, DEFAULT_AMOUNT_IN } from './shared/consts';
 import { BigNumber as BN, BigNumberish, ContractTransaction } from 'ethers';
 const hre = require('hardhat');
 
@@ -34,7 +24,7 @@ describe('RubicSettings', () => {
     let router: string;
     let routerV3: string;
     let wnative: WETH9;
-    let chainId: number;
+    // let chainId: number;
 
     let testMessagesContract: TestMessages;
 
@@ -43,7 +33,7 @@ describe('RubicSettings', () => {
     before('create fixture loader', async () => {
         [wallet, other] = await (ethers as any).getSigners();
         loadFixture = createFixtureLoader([wallet, other]);
-        chainId = (await ethers.provider.getNetwork()).chainId;
+        // chainId = (await ethers.provider.getNetwork()).chainId;
 
         await hre.network.provider.request({
             method: 'hardhat_impersonateAccount',
@@ -98,7 +88,7 @@ describe('RubicSettings', () => {
             it('Should successfully sweep tokens', async () => {
                 const balanceBefore = await transitToken.balanceOf(wallet.address);
 
-                await swapMain.sweepTokens(transitToken.address, DEFAULT_AMOUNT_IN_USDC);
+                await swapMain.sweepTokens(transitToken.address, DEFAULT_AMOUNT_IN_USDC, true);
 
                 const balanceAfter = await transitToken.balanceOf(wallet.address);
                 await expect(balanceBefore.add(DEFAULT_AMOUNT_IN_USDC)).to.be.eq(balanceAfter);
@@ -107,7 +97,7 @@ describe('RubicSettings', () => {
             it('Should successfully sweep native', async () => {
                 const balanceBefore = await wnative.balanceOf(swapMain.address);
 
-                await swapMain.sweepTokens(wnative.address, DEFAULT_AMOUNT_IN);
+                await swapMain.sweepTokens(wnative.address, DEFAULT_AMOUNT_IN, false);
 
                 const balanceAfter = await wnative.balanceOf(swapMain.address);
                 await expect(balanceBefore.sub(DEFAULT_AMOUNT_IN)).to.be.eq(balanceAfter);
@@ -117,13 +107,13 @@ describe('RubicSettings', () => {
                 await expect(
                     swapMain
                         .connect(other)
-                        .sweepTokens(transitToken.address, DEFAULT_AMOUNT_IN_USDC)
+                        .sweepTokens(transitToken.address, DEFAULT_AMOUNT_IN_USDC, true)
                 ).to.be.revertedWith('Caller is not a manager');
             });
 
             it('Should successfully fail sweepTokens', async () => {
                 await expect(
-                    swapMain.connect(other).sweepTokens(wnative.address, DEFAULT_AMOUNT_IN)
+                    swapMain.connect(other).sweepTokens(wnative.address, DEFAULT_AMOUNT_IN, false)
                 ).to.be.revertedWith('Caller is not a manager');
             });
         });

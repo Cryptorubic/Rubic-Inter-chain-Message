@@ -1,7 +1,7 @@
 import { ethers, network, waffle } from 'hardhat';
 import { swapContractFixtureInFork } from './shared/fixtures';
 import { Wallet } from '@ethersproject/wallet';
-import { RubicRouterV2, TestERC20, TestMessages, WETH9 } from '../typechain-types';
+import { RubicRouterV2, TestERC20, TestMessages, WETH9 } from '../typechain';
 import { expect } from 'chai';
 import {
     DEADLINE,
@@ -46,7 +46,8 @@ describe('RubicCrossChainBridge', () => {
         dstChainID = DST_CHAIN_ID,
         srcBridgeToken = wnative.address,
         nativeIn = null,
-        integrator = ZERO_ADDRESS
+        integrator = ZERO_ADDRESS,
+        nativeOut = true
     } = {}): Promise<ContractTransaction> {
         const cryptoFee = await swapMain.dstCryptoFee(dstChainID);
 
@@ -57,6 +58,7 @@ describe('RubicCrossChainBridge', () => {
             srcBridgeToken,
             {
                 dex: router,
+                nativeOut: nativeOut,
                 integrator: integrator,
                 version: VERSION,
                 path: [wnative.address, transitToken.address],
@@ -80,6 +82,7 @@ describe('RubicCrossChainBridge', () => {
         dstChainID = DST_CHAIN_ID,
         srcBridgeToken = transitToken.address,
         nativeIn = null,
+        nativeOut = true,
         integrator = ZERO_ADDRESS
     } = {}): Promise<ContractTransaction> {
         const cryptoFee = await swapMain.dstCryptoFee(dstChainID);
@@ -91,6 +94,7 @@ describe('RubicCrossChainBridge', () => {
             srcBridgeToken,
             {
                 dex: router,
+                nativeOut: nativeOut,
                 integrator: integrator,
                 version: VERSION,
                 path: [wnative.address, transitToken.address],
@@ -116,12 +120,13 @@ describe('RubicCrossChainBridge', () => {
             deadline = DEADLINE,
             amountOutMinimum = DEFAULT_AMOUNT_OUT_MIN,
             _receiver = wallet.address,
-            _nativeOut = false
+            nativeOut = true
         } = {}
     ): Promise<string> {
         return messagesContract.getMessage(
             {
                 dex,
+                nativeOut,
                 integrator,
                 version,
                 path,
@@ -147,7 +152,7 @@ describe('RubicCrossChainBridge', () => {
             deadline = DEADLINE,
             amountOutMinimum = DEFAULT_AMOUNT_OUT_MIN,
             _receiver = wallet.address,
-            _nativeOut = false,
+            nativeOut = true,
             _srcChainId = chainId,
             _dstChainId = DST_CHAIN_ID
         } = {}
@@ -158,6 +163,7 @@ describe('RubicCrossChainBridge', () => {
             _dstChainId,
             {
                 dex,
+                nativeOut,
                 integrator,
                 version,
                 path,

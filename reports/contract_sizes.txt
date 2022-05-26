@@ -3,6 +3,8 @@ No need to generate any newer typings.
  ·-------------------------------------------------------------------------|-------------|---------------·
  |  Contract Name                                                          ·  Size (KB)  ·  Change (KB)  │
  ··········································································|·············|················
+ |  hardhat/console.sol:console                                            ·      0.045  ·               │
+ ··········································································|·············|················
  |  @openzeppelin/contracts/utils/Address.sol:Address                      ·      0.045  ·               │
  ··········································································|·············|················
  |  @openzeppelin/contracts/utils/Strings.sol:Strings                      ·      0.045  ·               │
@@ -25,17 +27,19 @@ No need to generate any newer typings.
  ··········································································|·············|················
  |  contracts/message/apps/SwapBase.sol:SwapBase                           ·      3.729  ·               │
  ··········································································|·············|················
- |  contracts/test/TestMessages.sol:TestMessages                           ·      5.358  ·               │
+ |  contracts/test/TestMessages.sol:TestMessages                           ·      5.342  ·               │
  ··········································································|·············|················
- |  contracts/message/apps/BridgeSwap.sol:BridgeSwap                       ·      8.434  ·               │
+ |  contracts/message/apps/BridgeSwap.sol:BridgeSwap                       ·      8.605  ·               │
  ··········································································|·············|················
  |  contracts/test/MessageBusReceiver.sol:MessageBusReceiver               ·     10.061  ·               │
  ··········································································|·············|················
- |  contracts/message/apps/TransferSwapV3.sol:TransferSwapV3               ·     10.347  ·               │
+ |  contracts/message/apps/TransferSwapV3.sol:TransferSwapV3               ·     10.341  ·               │
  ··········································································|·············|················
- |  contracts/message/apps/TransferSwapV2.sol:TransferSwapV2               ·     10.445  ·               │
+ |  contracts/message/apps/TransferSwapV2.sol:TransferSwapV2               ·     10.442  ·               │
  ··········································································|·············|················
- |  contracts/message/apps/TransferSwapInch.sol:TransferSwapInch           ·     10.476  ·               │
+ |  contracts/message/apps/TransferSwapInch.sol:TransferSwapInch           ·     10.473  ·               │
  ··········································································|·············|················
- |  contracts/message/apps/RubicRouterV2.sol:RubicRouterV2                 ·     22.602  ·               │
+ |  contracts/message/apps/RubicRouterV2.sol:RubicRouterV2                 ·     23.797  ·               │
+ ··········································································|·············|················
+ |  contracts/message/apps/RubicRouterV2ETH.sol:RubicRouterV2ETH           ·     24.180  ·               │
  ·-------------------------------------------------------------------------|-------------|---------------·

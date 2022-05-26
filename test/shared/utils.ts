@@ -1,10 +1,9 @@
-import { IUniswapV2Router02 } from '../../typechain-types';
-import { IUniswapRouterV3 } from '../../typechain-types';
+import { IUniswapV2Router02 } from '../../typechain';
+import { IUniswapRouterV3 } from '../../typechain';
 import UniV2JSON from '@uniswap/v2-periphery/build/UniswapV2Router02.json';
 import UniV3JSON from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json';
 import { ethers } from 'hardhat';
 import { Wallet } from '@ethersproject/wallet';
-import { DEADLINE } from './consts';
 
 export const getRouterV2 = async function (
     wallet: Wallet,
