@@ -183,7 +183,7 @@ describe('RubicFallback', () => {
         expect(await swapMain.messageBus()).to.eq(TEST_BUS);
 
         const routers = TEST_ROUTERS.split(',');
-        expect(await swapMain.getSupportedDEXes()).to.deep.eq(routers);
+        expect(await swapMain.getAvailableRouters()).to.deep.eq(routers);
     });
 
     describe('#Fallback and refund tests', () => {

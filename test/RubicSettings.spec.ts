@@ -51,7 +51,7 @@ describe('RubicSettings', () => {
         expect(await swapMain.messageBus()).to.eq(TEST_BUS);
 
         const routers = TEST_ROUTERS.split(',');
-        expect(await swapMain.getSupportedDEXes()).to.deep.eq(routers);
+        expect(await swapMain.getAvailableRouters()).to.deep.eq(routers);
     });
 
     describe('#Contract utility tests', () => {
@@ -108,13 +108,13 @@ describe('RubicSettings', () => {
                     swapMain
                         .connect(other)
                         .sweepTokens(transitToken.address, DEFAULT_AMOUNT_IN_USDC, true)
-                ).to.be.revertedWith('Caller is not a manager');
+                ).to.be.revertedWith('Caller is not in manager or admin role');
             });
 
             it('Should successfully fail sweepTokens', async () => {
                 await expect(
                     swapMain.connect(other).sweepTokens(wnative.address, DEFAULT_AMOUNT_IN, false)
-                ).to.be.revertedWith('Caller is not a manager');
+                ).to.be.revertedWith('Caller is not in manager or admin role');
             });
         });
     });

@@ -5,9 +5,9 @@ pragma solidity >=0.8.9;
 import './SwapBase.sol';
 
 contract TransferSwapInch is SwapBase {
-    using Address for address payable;
-    using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.AddressSet;
+    using AddressUpgradeable for address payable;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     event SwapRequestSentInch(bytes32 id, uint64 dstChainId, uint256 srcAmount, address srcToken);
 
@@ -36,7 +36,7 @@ contract TransferSwapInch is SwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable onlyEOA whenNotPaused {
-        IERC20(_srcSwap.path[0]).safeTransferFrom(msg.sender, address(this), _amountIn);
+        IERC20Upgradeable(_srcSwap.path[0]).safeTransferFrom(msg.sender, address(this), _amountIn);
 
         uint256 _fee = _calculateCryptoFee(msg.value, _dstChainId);
 
@@ -79,8 +79,8 @@ contract TransferSwapInch is SwapBase {
         (success, srcAmtOut) = _trySwapInch(_srcSwap, _amountIn);
         if (!success) revert('src swap failed');
 
-        require(srcAmtOut >= minSwapAmount[srcTokenOut], 'amount must be greater than min swap amount');
-        require(srcAmtOut <= maxSwapAmount[srcTokenOut], 'amount must be lower than max swap amount');
+        require(srcAmtOut >= minTokenAmount[srcTokenOut], 'amount must be greater than min swap amount');
+        require(srcAmtOut <= maxTokenAmount[srcTokenOut], 'amount must be lower than max swap amount');
 
         _crossChainTransferWithSwapInch(
             _receiver,
@@ -131,13 +131,13 @@ contract TransferSwapInch is SwapBase {
     }
 
     function _trySwapInch(SwapInfoInch memory _swap, uint256 _amount) internal returns (bool ok, uint256 amountOut) {
-        if (!supportedDEXes.contains(_swap.dex)) {
+        if (!availableRouters.contains(_swap.dex)) {
             return (false, 0);
         }
 
-        smartApprove(IERC20(_swap.path[0]), _amount, _swap.dex);
+        smartApprove(_swap.path[0], _amount, _swap.dex);
 
-        IERC20 Transit = IERC20(_swap.path[_swap.path.length - 1]);
+        IERC20Upgradeable Transit = IERC20Upgradeable(_swap.path[_swap.path.length - 1]);
         uint256 transitBalanceBefore = Transit.balanceOf(address(this));
 
         Address.functionCall(_swap.dex, _swap.data);

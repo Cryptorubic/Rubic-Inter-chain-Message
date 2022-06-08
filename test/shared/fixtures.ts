@@ -9,6 +9,7 @@ import TokenJSON from '../../artifacts/contracts/test/TestERC20.sol/TestERC20.js
 import WETHJSON from '../../artifacts/contracts/test/WETH9.sol/WETH9.json';
 import MessageBusJSON from '../../artifacts/contracts/test/MessageBusSender.sol/MessageBusSender.json';
 import { expect } from 'chai';
+import {DST_CHAIN_ID, EXECUTOR_ADDRESS} from './consts';
 
 const envConfig = require('dotenv').config();
 const {
@@ -47,15 +48,24 @@ export const swapContractFixtureInFork: Fixture<SwapContractFixture> = async fun
 
     const RubicRouterV2Factory = await ethers.getContractFactory('RubicRouterV2');
 
-    const supportedDEXes = TEST_ROUTERS.split(',');
-    const router = supportedDEXes[0];
-    const routerV3 = supportedDEXes[1];
+    const availableRouters = TEST_ROUTERS.split(',');
+    const router = availableRouters[0];
+    const routerV3 = availableRouters[1];
 
     const swapMain = (await RubicRouterV2Factory.deploy(
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        availableRouters,
+        EXECUTOR_ADDRESS,
         TEST_BUS,
-        supportedDEXes,
         TEST_NATIVE
     )) as RubicRouterV2;
+
+    await swapMain.setFeeAmountOfBlockchain(DST_CHAIN_ID, '6000');
 
     const testMessagesFactory = await ethers.getContractFactory('TestMessages');
     const testMessagesContract = (await testMessagesFactory.deploy()) as TestMessages;

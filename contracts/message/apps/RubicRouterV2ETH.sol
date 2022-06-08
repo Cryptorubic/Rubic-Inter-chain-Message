@@ -6,31 +6,56 @@ import './TransferSwapV2.sol';
 import './TransferSwapV3.sol';
 import './TransferSwapInch.sol';
 import './BridgeSwap.sol';
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
-contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwap, ReentrancyGuard {
+contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwap {
     using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status);
 
     constructor(
+        uint256[] memory _blockchainIDs,
+        uint256[] memory _cryptoFees,
+        uint256[] memory _platformFees,
+        address[] memory _tokens,
+        uint256[] memory _minTokenAmounts,
+        uint256[] memory _maxTokenAmounts,
+        address[] memory _routers,
         address _messageBus,
-        address[] memory _supportedDEXes,
         address _nativeWrap
-    ) public {
-        messageBus = _messageBus;
-        for (uint256 i = 0; i < _supportedDEXes.length; i++) {
-            supportedDEXes.add(_supportedDEXes[i]);
-        }
-        nativeWrap = _nativeWrap;
-        feeRubic = 3000;
+    ) {
+        initialize(
+            _blockchainIDs,
+            _cryptoFees,
+            _platformFees,
+            _tokens,
+            _minTokenAmounts,
+            _maxTokenAmounts,
+            _routers
+        );
 
-        _setupRole(DEFAULT_ADMIN_ROLE, 0x105A3BA3637A29D36F61c7F03f55Da44B4591Cd1);
-        _setupRole(MANAGER, 0x105A3BA3637A29D36F61c7F03f55Da44B4591Cd1);
-        _setupRole(MANAGER, msg.sender);
-        _setupRole(MANAGER, 0x7eB9198941488a697971D9E48C4705600c46479e);
-        _setupRole(EXECUTOR, 0x503CEF47CE5e37AA62544A363BEF3C9b62d42116);
+        nativeWrap = _nativeWrap;
+        messageBus = _messageBus;
+    }
+
+    function initialize(
+        uint256[] memory _blockchainIDs,
+        uint256[] memory _cryptoFees,
+        uint256[] memory _platformFees,
+        address[] memory _tokens,
+        uint256[] memory _minTokenAmounts,
+        uint256[] memory _maxTokenAmounts,
+        address[] memory _routers
+    ) private initializer {
+        __MultipleTransitTokenInit(
+            _blockchainIDs,
+            _cryptoFees,
+            _platformFees,
+            _tokens,
+            _minTokenAmounts,
+            _maxTokenAmounts,
+            _routers
+        );
     }
 
     /**
@@ -66,7 +91,7 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
             IWETH(nativeWrap).deposit{value: _amount}();
         }
 
-        _amount = _calculatePlatformFee(m.swap.integrator, _token, _amount);
+        _amount = calculateFee(m.swap.integrator, _amount, uint256(_srcChainId), _token);
 
         if (m.swap.version == SwapVersion.v3) {
             _executeDstSwapV3(_token, _amount, id, m);
@@ -104,7 +129,7 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
 
         // Failed status means user hasn't received funds
         SwapStatus status = SwapStatus.Failed;
-        txStatusById[id] = status;
+        processedTransactions[id] = status;
         emit SwapRequestDone(id, _amount, status);
         // always return Fail to mark this transfer as failed since if this function is called then there nothing more
         // we can do in this app as the swap failures are already handled in executeMessageWithTransfer
@@ -138,7 +163,7 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
         _sendToken(_token, _amount, m.receiver, m.swap.nativeOut);
 
         SwapStatus status = SwapStatus.Fallback;
-        txStatusById[id] = status;
+        processedTransactions[id] = status;
         emit SwapRequestDone(id, _amount, status);
 
         return ExecutionStatus.Success;
@@ -161,7 +186,7 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
         SwapStatus status;
         status = SwapStatus.Succeeded;
 
-        txStatusById[_id] = status;
+        processedTransactions[_id] = status;
         emit SwapRequestDone(_id, _amount, status);
     }
 
@@ -192,13 +217,13 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
         if (success) {
             _sendToken(_dstSwap.path[_dstSwap.path.length - 1], dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
             status = SwapStatus.Succeeded;
-            txStatusById[_id] = status;
+            processedTransactions[_id] = status;
         } else {
             // handle swap failure, send the received token directly to receiver
             _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
             dstAmount = _amount;
             status = SwapStatus.Fallback;
-            txStatusById[_id] = status;
+            processedTransactions[_id] = status;
         }
 
         emit SwapRequestDone(_id, dstAmount, status);
@@ -231,13 +256,13 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
         if (success) {
             _sendToken(address(_getLastBytes20(_dstSwap.path)), dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
             status = SwapStatus.Succeeded;
-            txStatusById[_id] = status;
+            processedTransactions[_id] = status;
         } else {
             // handle swap failure, send the received token directly to receiver
             _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
             dstAmount = _amount;
             status = SwapStatus.Fallback;
-            txStatusById[_id] = status;
+            processedTransactions[_id] = status;
         }
 
         emit SwapRequestDone(_id, dstAmount, status);
@@ -258,100 +283,12 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
         }
     }
 
-    function setRubicFee(uint256 _feeRubic) external onlyManager {
-        require(_feeRubic <= 1000000, 'incorrect fee amount');
-        feeRubic = _feeRubic;
-    }
-
-    function setRubicShare(address _integrator, uint256 _percent) external onlyManager {
-        require(_percent <= 1000000, 'incorrect fee amount');
-        require(_integrator != address(0));
-        platformShare[_integrator] = _percent;
-    }
-
-    // set to 0 to remove integrator
-    function setIntegrator(address _integrator, uint256 _percent) external onlyManager {
-        require(_percent <= 1000000, 'incorrect fee amount');
-        require(_integrator != address(0));
-        integratorFee[_integrator] = _percent;
-    }
-
-    function pauseRubic() external onlyManager {
-        _pause();
-    }
-
-    function unPauseRubic() external onlyManager {
-        _unpause();
-    }
-
-    function setCryptoFee(uint64 _networkID, uint256 _amount) external onlyManager {
-        dstCryptoFee[_networkID] = _amount;
-    }
-
-    function addSupportedDex(address[] memory _dexes) external onlyManager {
-        for (uint256 i = 0; i < _dexes.length; i++) {
-            supportedDEXes.add(_dexes[i]);
-        }
-    }
-
-    function removeSupportedDex(address[] memory _dexes) external onlyManager {
-        for (uint256 i = 0; i < _dexes.length; i++) {
-            supportedDEXes.remove(_dexes[i]);
-        }
-    }
-
-    function getSupportedDEXes() public view returns (address[] memory dexes) {
-        return supportedDEXes.values();
-    }
-
     function sweepTokens(
         address _token,
         uint256 _amount,
         bool _nativeOut
-    ) external onlyManager {
+    ) external onlyManagerAndAdmin {
         _sendToken(_token, _amount, msg.sender, _nativeOut);
-    }
-
-    function integratorCollectFee(
-        address _token,
-        uint256 _amount,
-        bool _nativeOut
-    ) external nonReentrant {
-        require(integratorFee[msg.sender] > 0, 'not an integrator');
-        require(integratorCollectedFee[msg.sender][_token] >= _amount, 'not enough fees');
-        _sendToken(_token, _amount, msg.sender, _nativeOut);
-        integratorCollectedFee[msg.sender][_token] -= _amount;
-    }
-
-    function integratorCollectFee(
-        address _integrator,
-        address _token,
-        uint256 _amount,
-        bool _nativeOut
-    ) external nonReentrant onlyManager {
-        require(integratorFee[_integrator] > 0, 'not an integrator');
-        require(integratorCollectedFee[_integrator][_token] >= _amount, 'not enough fees');
-        _sendToken(_token, _amount, _integrator, _nativeOut);
-        integratorCollectedFee[_integrator][_token] -= _amount;
-    }
-
-    function rubicCollectPlatformFee(
-        address _token,
-        uint256 _amount,
-        bool _nativeOut
-    ) external onlyManager {
-        require(collectedFee[_token] >= _amount, 'amount too big');
-        _sendToken(_token, _amount, msg.sender, _nativeOut);
-        collectedFee[_token] -= _amount;
-    }
-
-    function rubicCollectCryptoFee(uint256 _amount) external onlyManager {
-        (bool sent, ) = msg.sender.call{value: _amount, gas: 50000}('');
-        require(sent, 'failed to send native');
-    }
-
-    function changeTxStatus(bytes32 _id, SwapStatus _status) external onlyManager {
-        txStatusById[_id] = _status;
     }
 
     function manualRefund(
@@ -362,26 +299,18 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
         bool _nativeOut
     ) external nonReentrant {
         require(
-            hasRole(MANAGER, msg.sender) || hasRole(EXECUTOR, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
+            hasRole(MANAGER_ROLE, msg.sender) || hasRole(EXECUTOR_ROLE, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
         );
-        require(txStatusById[_id] != SwapStatus.Succeeded && txStatusById[_id] != SwapStatus.Fallback);
+        require(processedTransactions[_id] != SwapStatus.Succeeded && processedTransactions[_id] != SwapStatus.Fallback);
         _sendToken(_token, _amount, _to, _nativeOut);
-        txStatusById[_id] = SwapStatus.Fallback;
+        processedTransactions[_id] = SwapStatus.Fallback;
     }
 
-    function setNativeWrap(address _nativeWrap) external onlyManager {
+    function setNativeWrap(address _nativeWrap) external onlyManagerAndAdmin {
         nativeWrap = _nativeWrap;
     }
 
-    function setMinSwapAmount(address _token, uint256 _amount) external onlyManager {
-        minSwapAmount[_token] = _amount;
-    }
-
-    function setMaxSwapAmount(address _token, uint256 _amount) external onlyManager {
-        maxSwapAmount[_token] = _amount;
-    }
-
-    function setMessageBus(address _messageBus) public onlyManager {
+    function setMessageBus(address _messageBus) public onlyManagerAndAdmin {
         messageBus = _messageBus;
         emit MessageBusUpdated(messageBus);
     }

@@ -6,8 +6,8 @@ import './SwapBase.sol';
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 
 contract TransferSwapV2 is SwapBase {
-    using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.AddressSet;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     event SwapRequestSentV2(bytes32 id, uint64 dstChainId, uint256 srcAmount, address srcToken);
 
@@ -36,7 +36,7 @@ contract TransferSwapV2 is SwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable onlyEOA whenNotPaused {
-        IERC20(_srcSwap.path[0]).safeTransferFrom(msg.sender, address(this), _amountIn);
+        IERC20Upgradeable(_srcSwap.path[0]).safeTransferFrom(msg.sender, address(this), _amountIn);
 
         uint256 _fee = _calculateCryptoFee(msg.value, _dstChainId);
 
@@ -79,8 +79,8 @@ contract TransferSwapV2 is SwapBase {
         (success, srcAmtOut) = _trySwapV2(_srcSwap, _amountIn);
         if (!success) revert('src swap failed');
 
-        require(srcAmtOut >= minSwapAmount[srcTokenOut], 'amount must be greater than min swap amount');
-        require(srcAmtOut <= maxSwapAmount[srcTokenOut], 'amount must be lower than max swap amount');
+        require(srcAmtOut >= minTokenAmount[srcTokenOut], 'amount must be greater than min swap amount');
+        require(srcAmtOut <= maxTokenAmount[srcTokenOut], 'amount must be lower than max swap amount');
 
         _crossChainTransferWithSwapV2(
             _receiver,
@@ -131,11 +131,11 @@ contract TransferSwapV2 is SwapBase {
     }
 
     function _trySwapV2(SwapInfoV2 memory _swap, uint256 _amount) internal returns (bool ok, uint256 amountOut) {
-        if (!supportedDEXes.contains(_swap.dex)) {
+        if (!availableRouters.contains(_swap.dex)) {
             return (false, 0);
         }
 
-        smartApprove(IERC20(_swap.path[0]), _amount, _swap.dex);
+        smartApprove(_swap.path[0], _amount, _swap.dex);
 
         try
             IUniswapV2Router02(_swap.dex).swapExactTokensForTokens(
