@@ -18,6 +18,8 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp, AccessControl, Pausab
 
     EnumerableSet.AddressSet internal supportedDEXes;
 
+    mapping(uint256 => address) public MPRegistry;
+
     // Collected fee amount for Rubic and integrators
     // token -> amount of collected fees
     mapping(address => uint256) public collectedFee;
@@ -115,6 +117,8 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp, AccessControl, Pausab
         SwapVersion version; // identifies swap type
         address[] path; // path address for v2 and inch
         bytes pathV3; // path address for v3
+        uint256 marketplaceID;
+        bytes calldataNFT;
         uint256 deadline; // for v2 and v3
         uint256 amountOutMinimum;
     }

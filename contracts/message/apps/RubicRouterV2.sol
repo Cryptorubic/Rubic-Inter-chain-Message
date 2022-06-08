@@ -178,7 +178,15 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         bool success;
         (success, dstAmount) = _trySwapV2(_dstSwap, _amount);
         if (success) {
-            _sendToken(_dstSwap.path[_dstSwap.path.length - 1], dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
+            if (_msgDst.swap.calldataNFT.length != 0 && _msgDst.swap.marketplaceID != 0){
+                address implementation = MPRegistry[_msgDst.swap.marketplaceID];
+                if (_msgDst.swap.marketplaceID == 1 || _msgDst.swap.marketplaceID == 2) {
+
+                }
+            }
+            else {
+                _sendToken(_dstSwap.path[_dstSwap.path.length - 1], dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
+            }
             status = SwapStatus.Succeeded;
             txStatusById[_id] = status;
         } else {
