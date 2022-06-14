@@ -7,11 +7,18 @@ import './TransferSwapV3.sol';
 import './TransferSwapInch.sol';
 import './BridgeSwap.sol';
 
+
 contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwap {
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status);
+
+    /// @dev This modifier prevents using executor functions
+    modifier onlyExecutor(address _executor) {
+        require(hasRole(EXECUTOR_ROLE, _executor), 'SwapBase: caller is not an executor');
+        _;
+    }
 
     constructor(
         uint256[] memory _blockchainIDs,
@@ -21,6 +28,7 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
         uint256[] memory _minTokenAmounts,
         uint256[] memory _maxTokenAmounts,
         address[] memory _routers,
+        address _executor,
         address _messageBus,
         address _nativeWrap
     ) {
@@ -36,6 +44,7 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
 
         nativeWrap = _nativeWrap;
         messageBus = _messageBus;
+        _setupRole(EXECUTOR_ROLE, _executor);
     }
 
     function initialize(
@@ -279,7 +288,7 @@ contract RubicRouterV2ETH is TransferSwapV2, TransferSwapV3, TransferSwapInch, B
             (bool sent, ) = _receiver.call{value: _amount, gas: 50000}('');
             require(sent, 'failed to send native');
         } else {
-            IERC20(_token).safeTransfer(_receiver, _amount);
+            IERC20Upgradeable(_token).safeTransfer(_receiver, _amount);
         }
     }
 

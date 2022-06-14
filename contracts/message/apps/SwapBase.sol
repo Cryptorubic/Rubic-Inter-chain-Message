@@ -16,12 +16,6 @@ contract SwapBase is MultipleTransitToken, MessageSenderApp, MessageReceiverApp{
     address public nativeWrap;
     uint64 public nonce;
 
-    /// @dev This modifier prevents using executor functions
-    modifier onlyExecutor(address _executor) {
-        require(hasRole(EXECUTOR_ROLE, _executor), 'SwapBase: caller is not an executor');
-        _;
-    }
-
     // ============== struct for V2 like dexes ==============
 
     struct SwapInfoV2 {

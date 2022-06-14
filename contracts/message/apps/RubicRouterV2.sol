@@ -7,13 +7,18 @@ import './TransferSwapV3.sol';
 import './TransferSwapInch.sol';
 import './BridgeSwap.sol';
 
-import 'hardhat/console.sol';
 
 contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwap {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status);
+
+    /// @dev This modifier prevents using executor functions
+    modifier onlyExecutor(address _executor) {
+        require(hasRole(EXECUTOR_ROLE, _executor), 'SwapBase: caller is not an executor');
+        _;
+    }
 
     constructor(
         uint256[] memory _blockchainIDs,
@@ -92,7 +97,6 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
 
         _amount = calculateFee(m.swap.integrator, _amount, uint256(_srcChainId), _token);
-        console.log(_amount);
 
         if (m.swap.version == SwapVersion.v3) {
             _executeDstSwapV3(_token, _amount, id, m);
