@@ -9,15 +9,15 @@ import TokenJSON from '../../artifacts/contracts/test/TestERC20.sol/TestERC20.js
 import WETHJSON from '../../artifacts/contracts/test/WETH9.sol/WETH9.json';
 import MessageBusJSON from '../../artifacts/contracts/test/MessageBusSender.sol/MessageBusSender.json';
 import { expect } from 'chai';
-import {DST_CHAIN_ID, EXECUTOR_ADDRESS} from './consts';
+import { DST_CHAIN_ID, EXECUTOR_ADDRESS } from './consts';
 
 const envConfig = require('dotenv').config();
 const {
-    ROUTERS_POLYGON: TEST_ROUTERS,
-    NATIVE_POLYGON: TEST_NATIVE,
-    BUS_POLYGON_MAIN: TEST_BUS,
-    TRANSIT_POLYGON: TEST_TRANSIT,
-    SWAP_TOKEN_POLYGON: TEST_SWAP_TOKEN
+    ROUTERS_BSC: TEST_ROUTERS,
+    NATIVE_BSC: TEST_NATIVE,
+    BUS_BSC: TEST_BUS,
+    TRANSIT_BSC: TEST_TRANSIT,
+    SWAP_TOKEN_BSC: TEST_SWAP_TOKEN
 } = envConfig.parsed || {};
 
 interface SwapContractFixture {
@@ -78,12 +78,12 @@ export const swapContractFixtureInFork: Fixture<SwapContractFixture> = async fun
 
     const storageBalancePositionTransit = ethers.utils.keccak256(
         abiCoder.encode(['address'], [wallets[0].address]) +
-            abiCoder.encode(['uint256'], [0]).slice(2, 66)
+            abiCoder.encode(['uint256'], [1]).slice(2, 66)
     );
 
     const storageBalancePositionSwap = ethers.utils.keccak256(
         abiCoder.encode(['address'], [wallets[0].address]) +
-            abiCoder.encode(['uint256'], [0]).slice(2, 66)
+            abiCoder.encode(['uint256'], [1]).slice(2, 66)
     );
 
     await network.provider.send('hardhat_setStorageAt', [

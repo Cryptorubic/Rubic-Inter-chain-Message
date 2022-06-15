@@ -1,7 +1,14 @@
 import { ethers, network, waffle } from 'hardhat';
 import { swapContractFixtureInFork } from './shared/fixtures';
 import { Wallet } from '@ethersproject/wallet';
-import { RubicRouterV2, TestERC20, TestMessages, WETH9 } from '../typechain';
+import {
+    RubicRouterV2,
+    TestERC20,
+    TestMessages,
+    WETH9,
+    IKephiExchange,
+    IKephiExchange__factory
+} from '../typechain';
 import { expect } from 'chai';
 import {
     DEADLINE,
@@ -14,7 +21,7 @@ import {
     feeDecimals,
     DEFAULT_AMOUNT_IN_USDC
 } from './shared/consts';
-import { BigNumber as BN, BigNumberish, ContractTransaction } from 'ethers';
+import { BaseContract, BigNumber as BN, BigNumberish, ContractTransaction } from 'ethers';
 import { getRouterV2 } from './shared/utils';
 const hre = require('hardhat');
 
@@ -22,9 +29,9 @@ const createFixtureLoader = waffle.createFixtureLoader;
 
 const envConfig = require('dotenv').config();
 const {
-    ROUTERS_POLYGON: TEST_ROUTERS,
-    NATIVE_POLYGON: TEST_NATIVE,
-    BUS_POLYGON_MAIN: TEST_BUS
+    ROUTERS_BSC: TEST_ROUTERS,
+    NATIVE_BSC: TEST_NATIVE,
+    BUS_BSC: TEST_BUS
 } = envConfig.parsed || {};
 
 describe('RubicCrossChainV2', () => {
@@ -72,6 +79,11 @@ describe('RubicCrossChainV2', () => {
                 version: VERSION_V2,
                 path: [wnative.address, transitToken.address],
                 pathV3: '0x',
+                NFTPurchaseInfo: {
+                    marketID: 0,
+                    value: 0,
+                    data: '0x'
+                },
                 deadline: DEADLINE,
                 amountOutMinimum: DEFAULT_AMOUNT_OUT_MIN
             },
@@ -117,6 +129,11 @@ describe('RubicCrossChainV2', () => {
                 version: VERSION_V2,
                 path: [wnative.address, transitToken.address],
                 pathV3: '0x',
+                NFTPurchaseInfo: {
+                    marketID: 0,
+                    value: 0,
+                    data: '0x'
+                },
                 deadline: DEADLINE,
                 amountOutMinimum: DEFAULT_AMOUNT_OUT_MIN
             },
@@ -155,9 +172,15 @@ describe('RubicCrossChainV2', () => {
             deadline = DEADLINE,
             amountOutMinimum = DEFAULT_AMOUNT_OUT_MIN,
             _receiver = wallet.address,
-            nativeOut = true
+            nativeOut = true,
+            /// NFT ///
+            marketID = 0,
+            value = BN.from('0'),
+            data = '0x'
         } = {}
     ): Promise<string> {
+        const NFTPurchaseInfo = { marketID, value, data };
+
         return messagesContract.getMessage(
             {
                 dex,
@@ -166,6 +189,7 @@ describe('RubicCrossChainV2', () => {
                 version,
                 path,
                 pathV3,
+                NFTPurchaseInfo,
                 deadline,
                 amountOutMinimum
             },
@@ -189,9 +213,15 @@ describe('RubicCrossChainV2', () => {
             _receiver = wallet.address,
             nativeOut = true,
             _srcChainId = chainId,
-            _dstChainId = DST_CHAIN_ID
+            _dstChainId = DST_CHAIN_ID,
+            /// NFT ///
+            marketID = 0,
+            value = BN.from('0'),
+            data = '0x'
         } = {}
     ): Promise<string> {
+        const NFTPurchaseInfo = { marketID, value, data };
+
         return messagesContract.getID(
             _receiver,
             _srcChainId,
@@ -203,6 +233,7 @@ describe('RubicCrossChainV2', () => {
                 version,
                 path,
                 pathV3,
+                NFTPurchaseInfo,
                 deadline,
                 amountOutMinimum
             },
@@ -234,7 +265,7 @@ describe('RubicCrossChainV2', () => {
             it('Should swap native to token and transfer through Celer', async () => {
                 await swapMain.setMaxTokenAmount(
                     transitToken.address,
-                    ethers.utils.parseEther('1000')
+                    ethers.utils.parseEther('10000')
                 );
 
                 const amountOutMin = await getAmountOutMin(
@@ -252,13 +283,14 @@ describe('RubicCrossChainV2', () => {
             it('Should swap native to token and fail transfer through Celer', async () => {
                 await swapMain.setMaxTokenAmount(
                     transitToken.address,
-                    ethers.utils.parseEther('1000')
+                    ethers.utils.parseEther('10000')
                 );
 
-                const amountOutMin = await getAmountOutMin();
+                const amountOutMin = await getAmountOutMin(BN.from('10000'));
 
                 await expect(
                     callTransferWithSwapV2Native(amountOutMin, {
+                        amountIn: BN.from('10000'),
                         srcPath: [wnative.address, transitToken.address]
                     })
                 ).to.be.revertedWith('amount too small');
@@ -269,10 +301,10 @@ describe('RubicCrossChainV2', () => {
                 await swapToken.approve(swapMain.address, ethers.constants.MaxUint256);
                 await swapMain.setMaxTokenAmount(
                     transitToken.address,
-                    ethers.utils.parseEther('1000')
+                    ethers.utils.parseEther('10000')
                 );
 
-                const amountOutMin = await getAmountOutMin(DEFAULT_AMOUNT_IN, [
+                const amountOutMin = await getAmountOutMin(DEFAULT_AMOUNT_IN_USDC, [
                     swapToken.address,
                     transitToken.address
                 ]);
@@ -310,8 +342,7 @@ describe('RubicCrossChainV2', () => {
         });
         describe('#executeMessageWithTransfer', () => {
             beforeEach('setup for target executions', async () => {
-                // transfer 1000 USDC
-                await transitToken.transfer(swapMain.address, ethers.BigNumber.from('1000000000'));
+                await transitToken.transfer(swapMain.address, DEFAULT_AMOUNT_IN.mul('100'));
             });
             describe('target swap should emit correct event', async () => {
                 let nonce: BN;
@@ -353,7 +384,8 @@ describe('RubicCrossChainV2', () => {
                     ).to.emit(swapMain, 'SwapRequestDone');
                     let tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
                     // take only platform comission in transit token
-                    const platformFee = Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
+                    const platformFee =
+                        Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
                     await expect(Number(tokenBalanceAfter)).to.be.eq(
                         Number(tokenBalanceBefore) * platformFee
                     );
@@ -394,7 +426,8 @@ describe('RubicCrossChainV2', () => {
                     const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
 
                     // take only platform comission in transit token
-                    const platformFee = Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
+                    const platformFee =
+                        Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
                     await expect(Number(tokenBalanceAfter)).to.be.eq(
                         Number(tokenBalanceBefore) * platformFee
                     );
@@ -449,7 +482,9 @@ describe('RubicCrossChainV2', () => {
                             )
                         ).to.emit(swapMain, 'SwapRequestDone');
                         const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
-                        const collectedFee1 = await swapMain.availableRubicFee(transitToken.address);
+                        const collectedFee1 = await swapMain.availableRubicFee(
+                            transitToken.address
+                        );
                         const integratorCollectedFee1 = await swapMain.availableIntegratorFee(
                             transitToken.address,
                             INTEGRATOR
@@ -509,7 +544,9 @@ describe('RubicCrossChainV2', () => {
                         ).to.emit(swapMain, 'SwapRequestDone');
 
                         const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
-                        const collectedFee1 = await swapMain.availableRubicFee(transitToken.address);
+                        const collectedFee1 = await swapMain.availableRubicFee(
+                            transitToken.address
+                        );
                         const integratorCollectedFee1 = await swapMain.availableIntegratorFee(
                             transitToken.address,
                             INTEGRATOR
@@ -567,7 +604,9 @@ describe('RubicCrossChainV2', () => {
                             )
                         ).to.emit(swapMain, 'SwapRequestDone');
                         const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
-                        const collectedFee1 = await swapMain.availableRubicFee(transitToken.address);
+                        const collectedFee1 = await swapMain.availableRubicFee(
+                            transitToken.address
+                        );
                         const integratorCollectedFee1 = await swapMain.availableIntegratorFee(
                             transitToken.address,
                             INTEGRATOR
@@ -591,6 +630,75 @@ describe('RubicCrossChainV2', () => {
                             Number(integratorFee) * Number(tokenBalanceBefore)
                         );
                     });
+                });
+            });
+            describe('Kephi integration', () => {
+                it.only('should buy nft on Kephi', async () => {
+                    await swapMain.setMPRegistry(3, '0xEca42E21C0D44a7Df04F1f0177C321a123eA9B14');
+
+                    const KephiExchange = IKephiExchange__factory.connect(
+                        ethers.constants.AddressZero,
+                        wallet
+                    );
+                    const data = KephiExchange.interface.encodeFunctionData('makeExchangeERC721', [
+                        '0xdd522e4c2b957b22bfe8ed25ef5cb24ad351fd791c52c68a9c5c786c81e1adc3',
+                        [
+                            '0x8318958F4f8b90bf8e3a50927c94632d3715142A',
+                            '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+                        ],
+                        {
+                            tokenAddress: '0x5f46c23ed76cD1e05B46DeCCeda5F407D1D3e66b',
+                            id: 1,
+                            amount: 0
+                        },
+                        {
+                            tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                            id: 0,
+                            amount: '560000000000000000'
+                        },
+                        [
+                            '0x8318958F4f8b90bf8e3a50927c94632d3715142A',
+                            '0x1ddd5F5c93acC898C1Da11FA00e3E07c480925F5'
+                        ],
+                        ['56000000000000000', '28000000000000000'],
+                        '0x10fb3585a17e26eb14bf5b3069460dee80ef85ae6712526907559a4b56bc0fde1bf44f75a6780decf57bcc71ac4e9328bdf22a9b59fa331f37a1ce3cbf962bf81c'
+                    ]);
+
+                    const message = await getMessage(
+                        testMessagesContract,
+                        (await swapMain.nonce()).add('1'),
+                        DST_CHAIN_ID,
+                        {
+                            path: [transitToken.address, swapToken.address],
+                            amountOutMinimum: ethers.BigNumber.from('200000000000000000'), // 0.2 eth for 1000$ is min,
+                            marketID: 3,
+                            value: BN.from('560000000000000000'),
+                            data
+                        }
+                    );
+
+                    await hre.network.provider.request({
+                        method: 'hardhat_impersonateAccount',
+                        params: [TEST_BUS]
+                    });
+
+                    const bus = await ethers.getSigner(TEST_BUS);
+
+                    await network.provider.send('hardhat_setBalance', [
+                        bus.address,
+                        '0x152D02C7E14AF6800000' // 100000 eth
+                    ]);
+
+                    const _swapMain = swapMain.connect(bus);
+
+                    const tx = await _swapMain.executeMessageWithTransfer(
+                        ethers.constants.AddressZero,
+                        transitToken.address,
+                        ethers.utils.parseEther('1000'),
+                        DST_CHAIN_ID,
+                        message,
+                        EXECUTOR_ADDRESS
+                    );
                 });
             });
         });

@@ -13,6 +13,8 @@ contract SwapBase is MultipleTransitToken, MessageSenderApp, MessageReceiverApp{
 
     bytes32 public constant EXECUTOR_ROLE = keccak256('EXECUTOR_ROLE');
 
+    mapping(uint256 => address) public MPRegistry;
+
     address public nativeWrap;
     uint64 public nonce;
 
@@ -46,6 +48,14 @@ contract SwapBase is MultipleTransitToken, MessageSenderApp, MessageReceiverApp{
         uint256 amountOutMinimum;
     }
 
+    // ============== NFT purchase info =================
+
+    struct NFTInfo {
+        uint256 marketID;
+        uint256 value;
+        bytes data;
+    }
+
     // ============== struct dstSwap ==============
     // This is needed to make v2 -> SGN -> v3 swaps and etc.
 
@@ -56,6 +66,7 @@ contract SwapBase is MultipleTransitToken, MessageSenderApp, MessageReceiverApp{
         SwapVersion version; // identifies swap type
         address[] path; // path address for v2 and inch
         bytes pathV3; // path address for v3
+        NFTInfo NFTPurchaseInfo;
         uint256 deadline; // for v2 and v3
         uint256 amountOutMinimum;
     }
@@ -95,6 +106,10 @@ contract SwapBase is MultipleTransitToken, MessageSenderApp, MessageReceiverApp{
         bytes memory _message
     ) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(_sender, _srcChainId, _dstChainId, _message));
+    }
+
+    function setMPRegistry(uint256 _marketID, address _implementation) external onlyManagerAndAdmin {
+        MPRegistry[_marketID] = _implementation;
     }
 
     // ============== fee logic ==============

@@ -30,10 +30,10 @@ const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
 module.exports = {
   networks: {
     hardhat: {
-      chainId: 137,
+      chainId: 56,
       forking: {
-        url: `https://polygon-rpc.com`,
-        blockNumber: 27081600 // hardcode block number to increase performance of the local cache
+        url: `https://binance.nodereal.io`,
+        //blockNumber: 18684050 // hardcode block number to increase performance of the local cache
       },
       allowUnlimitedContractSize: true,
       loggingEnabled: false,

@@ -432,7 +432,9 @@ describe('RubicCrossChainBridge', () => {
                         ).to.emit(swapMain, 'SwapRequestDone');
 
                         const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
-                        const collectedFee1 = await swapMain.availableRubicFee(transitToken.address);
+                        const collectedFee1 = await swapMain.availableRubicFee(
+                            transitToken.address
+                        );
                         const integratorCollectedFee1 = await swapMain.availableIntegratorFee(
                             transitToken.address,
                             INTEGRATOR

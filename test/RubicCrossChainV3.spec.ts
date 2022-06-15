@@ -335,7 +335,8 @@ describe('RubicCrossChainV3', () => {
                     ).to.emit(swapMain, 'SwapRequestDone');
                     let tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
                     // take only platform comission in transit token
-                    const platformFee = Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
+                    const platformFee =
+                        Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
 
                     await expect(Number(tokenBalanceAfter)).to.be.eq(
                         Number(tokenBalanceBefore) * platformFee
@@ -379,7 +380,8 @@ describe('RubicCrossChainV3', () => {
                     let tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
 
                     // take only platform comission in transit token
-                    const platformFee = Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
+                    const platformFee =
+                        Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
 
                     await expect(Number(tokenBalanceAfter)).to.be.eq(
                         Number(tokenBalanceBefore) * platformFee
@@ -438,7 +440,9 @@ describe('RubicCrossChainV3', () => {
                         ).to.emit(swapMain, 'SwapRequestDone');
 
                         const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
-                        const collectedFee1 = await swapMain.availableRubicFee(transitToken.address);
+                        const collectedFee1 = await swapMain.availableRubicFee(
+                            transitToken.address
+                        );
                         const integratorCollectedFee1 = await swapMain.availableIntegratorFee(
                             transitToken.address,
                             INTEGRATOR
@@ -500,7 +504,9 @@ describe('RubicCrossChainV3', () => {
                         ).to.emit(swapMain, 'SwapRequestDone');
 
                         const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
-                        const collectedFee1 = await swapMain.availableRubicFee(transitToken.address);
+                        const collectedFee1 = await swapMain.availableRubicFee(
+                            transitToken.address
+                        );
                         const integratorCollectedFee1 = await swapMain.availableIntegratorFee(
                             transitToken.address,
                             INTEGRATOR
