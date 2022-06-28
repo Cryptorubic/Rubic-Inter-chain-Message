@@ -6,7 +6,6 @@ import {
     TestERC20,
     TestMessages,
     WETH9,
-    IKephiExchange,
     IKephiExchange__factory
 } from '../typechain';
 import { expect } from 'chai';
@@ -21,7 +20,7 @@ import {
     feeDecimals,
     DEFAULT_AMOUNT_IN_USDC
 } from './shared/consts';
-import { BaseContract, BigNumber as BN, BigNumberish, ContractTransaction } from 'ethers';
+import { BigNumber as BN, BigNumberish, ContractTransaction } from 'ethers';
 import { getRouterV2 } from './shared/utils';
 const hre = require('hardhat');
 
@@ -340,7 +339,7 @@ describe('RubicCrossChainV2', () => {
                     .withArgs(ID, DST_CHAIN_ID, DEFAULT_AMOUNT_IN, swapToken.address);
             });
         });
-        describe.only('#executeMessageWithTransfer', () => {
+        describe('#executeMessageWithTransfer', () => {
             let platformFee;
             beforeEach('setup for target executions', async () => {
                 await transitToken.transfer(swapMain.address, DEFAULT_AMOUNT_IN.mul('100'));
@@ -387,7 +386,9 @@ describe('RubicCrossChainV2', () => {
                     let tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
                     // take only platform comission in transit token
                     await expect(tokenBalanceBefore.sub(tokenBalanceAfter)).to.be.eq(
-                        DEFAULT_AMOUNT_IN.mul(BN.from(feeDecimals).sub(platformFee)).div(feeDecimals)
+                        DEFAULT_AMOUNT_IN.mul(BN.from(feeDecimals).sub(platformFee)).div(
+                            feeDecimals
+                        )
                     );
                 });
 
@@ -627,7 +628,7 @@ describe('RubicCrossChainV2', () => {
                 });
             });
             describe('Kephi integration', () => {
-                it('should buy nft on Kephi', async () => {
+                it.only('should buy nft on Kephi', async () => {
                     await swapMain.setMPRegistry(3, '0xEca42E21C0D44a7Df04F1f0177C321a123eA9B14');
 
                     const KephiExchange = IKephiExchange__factory.connect(
@@ -663,7 +664,7 @@ describe('RubicCrossChainV2', () => {
                         (await swapMain.nonce()).add('1'),
                         DST_CHAIN_ID,
                         {
-                            path: [transitToken.address, swapToken.address],
+                            path: [transitToken.address, wnative.address],
                             amountOutMinimum: ethers.BigNumber.from('200000000000000000'), // 0.2 eth for 1000$ is min,
                             marketID: 3,
                             value: BN.from('560000000000000000'),
@@ -685,14 +686,18 @@ describe('RubicCrossChainV2', () => {
 
                     const _swapMain = swapMain.connect(bus);
 
-                    const tx = await _swapMain.executeMessageWithTransfer(
-                        ethers.constants.AddressZero,
-                        transitToken.address,
-                        ethers.utils.parseEther('1000'),
-                        DST_CHAIN_ID,
-                        message,
-                        EXECUTOR_ADDRESS
-                    );
+                    await expect(
+                        _swapMain.executeMessageWithTransfer(
+                            ethers.constants.AddressZero,
+                            transitToken.address,
+                            ethers.utils.parseEther('1000'),
+                            DST_CHAIN_ID,
+                            message,
+                            EXECUTOR_ADDRESS
+                        )
+                    )
+                        .to.emit(_swapMain, 'NFTPurchased')
+                        .withArgs(3, BN.from('560000000000000000'));
                 });
             });
         });
