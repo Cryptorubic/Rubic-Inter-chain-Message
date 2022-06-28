@@ -340,9 +340,11 @@ describe('RubicCrossChainV2', () => {
                     .withArgs(ID, DST_CHAIN_ID, DEFAULT_AMOUNT_IN, swapToken.address);
             });
         });
-        describe('#executeMessageWithTransfer', () => {
+        describe.only('#executeMessageWithTransfer', () => {
+            let platformFee;
             beforeEach('setup for target executions', async () => {
                 await transitToken.transfer(swapMain.address, DEFAULT_AMOUNT_IN.mul('100'));
+                platformFee = await swapMain.feeAmountOfBlockchain(DST_CHAIN_ID);
             });
             describe('target swap should emit correct event', async () => {
                 let nonce: BN;
@@ -376,7 +378,7 @@ describe('RubicCrossChainV2', () => {
                         _swapMain.executeMessageWithTransfer(
                             ethers.constants.AddressZero,
                             transitToken.address,
-                            ethers.BigNumber.from('1000000000'),
+                            DEFAULT_AMOUNT_IN,
                             DST_CHAIN_ID,
                             message,
                             EXECUTOR_ADDRESS
@@ -384,10 +386,8 @@ describe('RubicCrossChainV2', () => {
                     ).to.emit(swapMain, 'SwapRequestDone');
                     let tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
                     // take only platform comission in transit token
-                    const platformFee =
-                        Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
-                    await expect(Number(tokenBalanceAfter)).to.be.eq(
-                        Number(tokenBalanceBefore) * platformFee
+                    await expect(tokenBalanceBefore.sub(tokenBalanceAfter)).to.be.eq(
+                        DEFAULT_AMOUNT_IN.mul(BN.from(feeDecimals).sub(platformFee)).div(feeDecimals)
                     );
                 });
 
@@ -416,7 +416,7 @@ describe('RubicCrossChainV2', () => {
                         _swapMain.executeMessageWithTransfer(
                             ethers.constants.AddressZero,
                             transitToken.address,
-                            ethers.BigNumber.from('1000000000'),
+                            DEFAULT_AMOUNT_IN,
                             DST_CHAIN_ID,
                             message,
                             EXECUTOR_ADDRESS
@@ -426,16 +426,16 @@ describe('RubicCrossChainV2', () => {
                     const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
 
                     // take only platform comission in transit token
-                    const platformFee =
-                        Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
-                    await expect(Number(tokenBalanceAfter)).to.be.eq(
-                        Number(tokenBalanceBefore) * platformFee
+                    await expect(tokenBalanceBefore.sub(tokenBalanceAfter)).to.be.eq(
+                        DEFAULT_AMOUNT_IN.mul(BN.from(feeDecimals).sub(platformFee)).div(
+                            feeDecimals
+                        )
                     );
 
                     const collectedFee1 = await swapMain.availableRubicFee(transitToken.address);
 
-                    await expect(Number(collectedFee1)).to.be.eq(
-                        Number(tokenBalanceBefore) * platformFee
+                    await expect(collectedFee1).to.be.eq(
+                        DEFAULT_AMOUNT_IN.mul(platformFee).div(feeDecimals)
                     );
                     const integratorCollectedFee1 = await swapMain.availableIntegratorFee(
                         INTEGRATOR,
@@ -445,6 +445,9 @@ describe('RubicCrossChainV2', () => {
                 });
 
                 describe('target swap should take integrator & rubic fee', async () => {
+                    let integratorFee;
+                    let platformShare;
+                    let integratorPart;
                     beforeEach('set integrator and rubic fee', async () => {
                         await swapMain.setIntegratorFee(INTEGRATOR, '3000', '500000'); // 0.3 %
 
@@ -453,6 +456,15 @@ describe('RubicCrossChainV2', () => {
                             integrator: INTEGRATOR,
                             amountOutMinimum: ethers.BigNumber.from('200000000000000000') // 0.2 eth for 1000$ is minOut, too much
                         });
+
+                        integratorFee = await swapMain.integratorFee(INTEGRATOR);
+                        platformShare = await swapMain.platformShare(INTEGRATOR);
+                        integratorPart = integratorFee
+                            .mul(BN.from(feeDecimals).sub(platformShare))
+                            .div(feeDecimals);
+                        platformFee = integratorFee
+                            .mul(await swapMain.platformShare(INTEGRATOR))
+                            .div(feeDecimals);
                     });
 
                     it('should successfully swapV2 token to token with rubic & integrator fee', async () => {
@@ -475,7 +487,7 @@ describe('RubicCrossChainV2', () => {
                             _swapMain.executeMessageWithTransfer(
                                 ethers.constants.AddressZero,
                                 transitToken.address,
-                                ethers.BigNumber.from('1000000000'),
+                                DEFAULT_AMOUNT_IN,
                                 DST_CHAIN_ID,
                                 message,
                                 EXECUTOR_ADDRESS
@@ -490,22 +502,16 @@ describe('RubicCrossChainV2', () => {
                             INTEGRATOR
                         );
 
-                        const integratorFee =
-                            Number(await _swapMain.integratorFee(INTEGRATOR)) / feeDecimals;
-                        const platformFee =
-                            (integratorFee * Number(await _swapMain.platformShare(INTEGRATOR))) /
-                            feeDecimals;
-
-                        await expect(Number(integratorCollectedFee1)).to.be.eq(
-                            Number(tokenBalanceBefore) * (Number(integratorFee) - platformFee)
+                        await expect(integratorCollectedFee1).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(integratorPart).div(feeDecimals)
                         );
                         // take platform comission in transit token
-                        await expect(Number(collectedFee1)).to.be.eq(
-                            Number(tokenBalanceBefore) * Number(platformFee)
+                        await expect(collectedFee1).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(platformFee).div(feeDecimals)
                         );
 
-                        await expect(Number(tokenBalanceAfter)).to.be.eq(
-                            Number(integratorFee) * Number(tokenBalanceBefore)
+                        await expect(tokenBalanceBefore.sub(tokenBalanceAfter)).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(feeDecimals.sub(integratorFee)).div(feeDecimals)
                         );
                     });
 
@@ -536,7 +542,7 @@ describe('RubicCrossChainV2', () => {
                             _swapMain.executeMessageWithTransfer(
                                 ethers.constants.AddressZero,
                                 transitToken.address,
-                                ethers.BigNumber.from('1000000000'),
+                                DEFAULT_AMOUNT_IN,
                                 DST_CHAIN_ID,
                                 message,
                                 EXECUTOR_ADDRESS
@@ -552,22 +558,16 @@ describe('RubicCrossChainV2', () => {
                             INTEGRATOR
                         );
 
-                        const integratorFee =
-                            Number(await _swapMain.integratorFee(INTEGRATOR)) / feeDecimals;
-                        const platformFee =
-                            (integratorFee * Number(await _swapMain.platformShare(INTEGRATOR))) /
-                            feeDecimals;
-
-                        await expect(Number(integratorCollectedFee1)).to.be.eq(
-                            Number(tokenBalanceBefore) * (Number(integratorFee) - platformFee)
+                        await expect(integratorCollectedFee1).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(integratorPart).div(feeDecimals)
                         );
                         // take platform comission in transit token
-                        await expect(Number(collectedFee1)).to.be.eq(
-                            Number(tokenBalanceBefore) * Number(platformFee)
+                        await expect(collectedFee1).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(platformFee).div(feeDecimals)
                         );
 
-                        await expect(Number(tokenBalanceAfter)).to.be.eq(
-                            Number(integratorFee) * Number(tokenBalanceBefore)
+                        await expect(tokenBalanceBefore.sub(tokenBalanceAfter)).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(feeDecimals.sub(integratorFee)).div(feeDecimals)
                         );
                     });
 
@@ -597,7 +597,7 @@ describe('RubicCrossChainV2', () => {
                             _swapMain.executeMessageWithTransfer(
                                 ethers.constants.AddressZero,
                                 transitToken.address,
-                                ethers.BigNumber.from('1000000000'),
+                                DEFAULT_AMOUNT_IN,
                                 DST_CHAIN_ID,
                                 message,
                                 EXECUTOR_ADDRESS
@@ -612,28 +612,22 @@ describe('RubicCrossChainV2', () => {
                             INTEGRATOR
                         );
 
-                        const integratorFee =
-                            Number(await _swapMain.integratorFee(INTEGRATOR)) / feeDecimals;
-                        const platformFee =
-                            (integratorFee * Number(await _swapMain.platformShare(INTEGRATOR))) /
-                            feeDecimals;
-
-                        await expect(Number(integratorCollectedFee1)).to.be.eq(
-                            Number(tokenBalanceBefore) * (Number(integratorFee) - platformFee)
+                        await expect(integratorCollectedFee1).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(integratorPart).div(feeDecimals)
                         );
                         // take platform comission in transit token
-                        await expect(Number(collectedFee1)).to.be.eq(
-                            Number(tokenBalanceBefore) * Number(platformFee)
+                        await expect(collectedFee1).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(platformFee).div(feeDecimals)
                         );
 
-                        await expect(Number(tokenBalanceAfter)).to.be.eq(
-                            Number(integratorFee) * Number(tokenBalanceBefore)
+                        await expect(tokenBalanceBefore.sub(tokenBalanceAfter)).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(feeDecimals.sub(integratorFee)).div(feeDecimals)
                         );
                     });
                 });
             });
             describe('Kephi integration', () => {
-                it.only('should buy nft on Kephi', async () => {
+                it('should buy nft on Kephi', async () => {
                     await swapMain.setMPRegistry(3, '0xEca42E21C0D44a7Df04F1f0177C321a123eA9B14');
 
                     const KephiExchange = IKephiExchange__factory.connect(
