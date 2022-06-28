@@ -633,7 +633,7 @@ describe('RubicCrossChainV2', () => {
                 });
             });
             describe('Kephi integration', () => {
-                it.only('should buy nft on Kephi', async () => {
+                it('should buy nft on Kephi', async () => {
                     await swapMain.setMPRegistry(3, '0xEca42E21C0D44a7Df04F1f0177C321a123eA9B14');
 
                     const KephiExchange = IKephiExchange__factory.connect(

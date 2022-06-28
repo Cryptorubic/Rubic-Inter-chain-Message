@@ -5,6 +5,7 @@ import '@nomiclabs/hardhat-etherscan';
 import 'hardhat-contract-sizer';
 import 'hardhat-gas-reporter';
 import '@openzeppelin/hardhat-upgrades';
+import "@tenderly/hardhat-tenderly";
 
 import { SolcUserConfig } from 'hardhat/types'
 
@@ -40,6 +41,16 @@ module.exports = {
       accounts:{
         count:100
       }
+    },
+    localhost: {
+        accounts: 'remote',
+        chainId: 56,
+        gas: 'auto',
+        gasPrice: 'auto',
+        gasMultiplier: 1,
+        httpHeaders: {},
+        timeout: 40000,
+        url: 'http://127.0.0.1:8545'
     },
     eth: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_ID_PROJECT}`,
@@ -147,5 +158,12 @@ module.exports = {
     enabled: process.env.REPORT_GAS === 'true' ? true : false,
     noColors: true,
     outputFile: 'reports/gas_usage/summary.txt'
+  },
+  tenderly: {
+      project: "nft-aggregator",
+      username: "debych",
+      forkNetwork: "Binance",
+      // privateVerification: false,
+      // deploymentsDir: "deployments"
   }
 }
