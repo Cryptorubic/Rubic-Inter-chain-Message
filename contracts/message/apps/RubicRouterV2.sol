@@ -289,10 +289,9 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     ) private {
         if (_token == nativeWrap && _nativeOut == true) {
             IWETH(nativeWrap).withdraw(_amount);
-            (bool sent, ) = _receiver.call{value: _amount, gas: 50000}('');
-            require(sent, 'failed to send native');
+            _sendToken(address(0), _amount, _receiver);
         } else {
-            IERC20Upgradeable(_token).safeTransfer(_receiver, _amount);
+            _sendToken(_token, _amount, _receiver);
         }
     }
 
