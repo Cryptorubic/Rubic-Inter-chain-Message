@@ -281,10 +281,9 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
     function sweepTokens(
         address _token,
-        uint256 _amount,
-        bool _nativeOut
+        uint256 _amount
     ) external onlyManagerAndAdmin {
-        _sendToken(_token, _amount, msg.sender, _nativeOut);
+        _sendToken(_token, _amount, msg.sender);
     }
 
     function manualRefund(
@@ -293,10 +292,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         uint256 _amount,
         address _to,
         bool _nativeOut
-    ) external nonReentrant {
-        require(
-            hasRole(MANAGER_ROLE, msg.sender) || hasRole(EXECUTOR_ROLE, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
-        );
+    ) external nonReentrant onlyManagerAndAdmin {
         require(processedTransactions[_id] != SwapStatus.Succeeded && processedTransactions[_id] != SwapStatus.Fallback);
         _sendToken(_token, _amount, _to, _nativeOut);
         processedTransactions[_id] = SwapStatus.Fallback;
