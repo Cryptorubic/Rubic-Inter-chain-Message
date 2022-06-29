@@ -9,7 +9,7 @@ import './BridgeSwap.sol';
 
 import 'hardhat/console.sol';
 
-contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwap {
+contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
@@ -101,7 +101,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         _amount = calculateFee(m.swap.integrator, _amount, uint256(_srcChainId), _token);
 
         if (m.swap.version == SwapVersion.v3) {
-            _executeDstSwapV3(_token, _amount, id, m);
+            //_executeDstSwapV3(_token, _amount, id, m);
         } else if (m.swap.version == SwapVersion.bridge) {
             _executeDstBridge(_token, _amount, id, m);
         } else {
@@ -242,44 +242,44 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         emit SwapRequestDone(_id, dstAmount, status);
     }
 
-    function _executeDstSwapV3(
-        address _token,
-        uint256 _amount,
-        bytes32 _id,
-        SwapRequestDest memory _msgDst
-    ) private {
-        require(
-            _token == address(_getFirstBytes20(_msgDst.swap.pathV3)),
-            'bridged token must be the same as the first token in destination swap path'
-        );
-        require(_msgDst.swap.pathV3.length > 20, 'dst swap expected');
-
-        uint256 dstAmount;
-        SwapStatus status;
-
-        SwapInfoV3 memory _dstSwap = SwapInfoV3({
-            dex: _msgDst.swap.dex,
-            path: _msgDst.swap.pathV3,
-            deadline: _msgDst.swap.deadline,
-            amountOutMinimum: _msgDst.swap.amountOutMinimum
-        });
-
-        bool success;
-        (success, dstAmount) = _trySwapV3(_dstSwap, _amount);
-        if (success) {
-            _sendToken(address(_getLastBytes20(_dstSwap.path)), dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
-            status = SwapStatus.Succeeded;
-            processedTransactions[_id] = status;
-        } else {
-            // handle swap failure, send the received token directly to receiver
-            _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
-            dstAmount = _amount;
-            status = SwapStatus.Fallback;
-            processedTransactions[_id] = status;
-        }
-
-        emit SwapRequestDone(_id, dstAmount, status);
-    }
+//    function _executeDstSwapV3(
+//        address _token,
+//        uint256 _amount,
+//        bytes32 _id,
+//        SwapRequestDest memory _msgDst
+//    ) private {
+//        require(
+//            _token == address(_getFirstBytes20(_msgDst.swap.pathV3)),
+//            'bridged token must be the same as the first token in destination swap path'
+//        );
+//        require(_msgDst.swap.pathV3.length > 20, 'dst swap expected');
+//
+//        uint256 dstAmount;
+//        SwapStatus status;
+//
+//        SwapInfoV3 memory _dstSwap = SwapInfoV3({
+//            dex: _msgDst.swap.dex,
+//            path: _msgDst.swap.pathV3,
+//            deadline: _msgDst.swap.deadline,
+//            amountOutMinimum: _msgDst.swap.amountOutMinimum
+//        });
+//
+//        bool success;
+//        (success, dstAmount) = _trySwapV3(_dstSwap, _amount);
+//        if (success) {
+//            _sendToken(address(_getLastBytes20(_dstSwap.path)), dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
+//            status = SwapStatus.Succeeded;
+//            processedTransactions[_id] = status;
+//        } else {
+//            // handle swap failure, send the received token directly to receiver
+//            _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
+//            dstAmount = _amount;
+//            status = SwapStatus.Fallback;
+//            processedTransactions[_id] = status;
+//        }
+//
+//        emit SwapRequestDone(_id, dstAmount, status);
+//    }
 
     function _sendToken(
         address _token,

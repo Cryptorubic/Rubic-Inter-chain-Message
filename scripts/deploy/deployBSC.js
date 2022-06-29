@@ -16,8 +16,15 @@ async function main() {
   // SUSHI: 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506
 
   const CrossChainSwapDeploy = await CrossChainSwap.deploy(
-        '0x95714818fdd7a5454F73Da9c777B3ee6EbAEEa6B',
+        [],
+      [],
+      [],
+      [],
+      [],
+      [],
       ['0x10ed43c718714eb63d5aa57b78b54704e256024e','0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506','0xcF0feBd3f17CEf5b47b0cD257aCf6025c5BFf3b7','0x1111111254fb6c44bAC0beD2854e76F90643097d'],
+      '0xfe99d38697e107FDAc6e4bFEf876564f70041594',
+      '0x95714818fdd7a5454F73Da9c777B3ee6EbAEEa6B',
       '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
   );
 
@@ -29,9 +36,16 @@ async function main() {
   await hre.run("verify:verify", {
     address: CrossChainSwapDeploy.address,
     constructorArguments: [
-      '0x95714818fdd7a5454F73Da9c777B3ee6EbAEEa6B',
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
       ['0x10ed43c718714eb63d5aa57b78b54704e256024e','0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506','0xcF0feBd3f17CEf5b47b0cD257aCf6025c5BFf3b7','0x1111111254fb6c44bAC0beD2854e76F90643097d'],
-      '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'
+      '0xfe99d38697e107FDAc6e4bFEf876564f70041594',
+      '0x95714818fdd7a5454F73Da9c777B3ee6EbAEEa6B',
+      '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
     ],
   });
 }

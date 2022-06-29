@@ -27,7 +27,6 @@
     "@openzeppelin/contracts-upgradeable": "^4.5.2",
     "@openzeppelin/hardhat-upgrades": "^1.17.0",
     "@openzeppelin/test-helpers": "^0.5.15",
-    "@tenderly/hardhat-tenderly": "^1.1.2",
     "@types/jest": "^27.0.3",
     "@types/mocha": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^4.33.0",

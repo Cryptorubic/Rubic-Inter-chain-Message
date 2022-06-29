@@ -5,7 +5,6 @@ import '@nomiclabs/hardhat-etherscan';
 import 'hardhat-contract-sizer';
 import 'hardhat-gas-reporter';
 import '@openzeppelin/hardhat-upgrades';
-import "@tenderly/hardhat-tenderly";
 
 import { SolcUserConfig } from 'hardhat/types'
 
@@ -158,12 +157,5 @@ module.exports = {
     enabled: process.env.REPORT_GAS === 'true' ? true : false,
     noColors: true,
     outputFile: 'reports/gas_usage/summary.txt'
-  },
-  tenderly: {
-      project: "nft-aggregator",
-      username: "debych",
-      forkNetwork: "Binance",
-      // privateVerification: false,
-      // deploymentsDir: "deployments"
   }
 }
