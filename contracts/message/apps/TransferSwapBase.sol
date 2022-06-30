@@ -66,21 +66,6 @@ contract TransferSwapBase is SwapBase {
         );
     }
 
-//    function transferWithSwapV2(
-//        address _receiver,
-//        uint256 _amountIn,
-//        uint64 _dstChainId,
-//        SwapInfoV2 calldata _srcSwap,
-//        SwapInfoDest calldata _dstSwap,
-//        uint32 _maxBridgeSlippage
-//    ) external payable onlyEOA whenNotPaused {
-//        IERC20Upgradeable(_srcSwap.path[0]).safeTransferFrom(msg.sender, address(this), _amountIn);
-//
-//        uint256 _fee = _calculateCryptoFee(msg.value, _dstChainId);
-//
-//        _transferWithSwapV2(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee);
-//    }
-
     function _crossChainTransferWithSwap(
         address _receiver,
         uint64 _chainId,

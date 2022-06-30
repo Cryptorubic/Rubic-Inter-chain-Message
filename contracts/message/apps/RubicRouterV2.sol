@@ -110,6 +110,11 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         return ExecutionStatus.Success;
     }
 
+    function _afterFallbackOrRefund(bytes32 _id, uint256 _amount, SwapStatus _status) private {
+        processedTransactions[_id] = _status;
+        emit SwapRequestDone(_id, _amount, _status);
+    }
+
     /**
      * @notice called by MessageBus when the executeMessageWithTransfer call fails. does nothing but emitting a "fail" event
      * @param _srcChainId source chain ID
@@ -129,9 +134,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
 
         // Failed status means user hasn't received funds
-        SwapStatus status = SwapStatus.Failed;
-        processedTransactions[id] = status;
-        emit SwapRequestDone(id, _amount, status);
+        _afterFallbackOrRefund(id, _amount, SwapStatus.Failed);
         // always return Fail to mark this transfer as failed since if this function is called then there nothing more
         // we can do in this app as the swap failures are already handled in executeMessageWithTransfer
         return ExecutionStatus.Fail;
@@ -159,9 +162,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
         _sendToken(_token, _amount, m.receiver, m.swap.nativeOut);
 
-        SwapStatus status = SwapStatus.Fallback;
-        processedTransactions[id] = status;
-        emit SwapRequestDone(id, _amount, status);
+        _afterFallbackOrRefund(id, _amount, SwapStatus.Fallback);
 
         return ExecutionStatus.Success;
     }
