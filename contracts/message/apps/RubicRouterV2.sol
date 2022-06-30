@@ -197,8 +197,6 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         );
         require(_msgDst.swap.path.length > 1, 'dst swap expected');
 
-        uint256 dstAmount;
-
         SwapInfoV2 memory _dstSwap = SwapInfoV2({
             dex: _msgDst.swap.dex,
             path: _msgDst.swap.path,
@@ -206,8 +204,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
             amountOutMinimum: _msgDst.swap.amountOutMinimum
         });
 
-        bool success;
-        (success, dstAmount) = _trySwapV2(_dstSwap, _amount);
+        (bool success, uint256 dstAmount) = _trySwapV2(_dstSwap, _amount);
         if (success) {
             _sendToken(_dstSwap.path[_dstSwap.path.length - 1], dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
             _afterTargetProcessing(_id, _amount, SwapStatus.Succeeded);
@@ -231,8 +228,6 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         );
         require(_msgDst.swap.pathV3.length > 20, 'dst swap expected');
 
-        uint256 dstAmount;
-
         SwapInfoV3 memory _dstSwap = SwapInfoV3({
             dex: _msgDst.swap.dex,
             path: _msgDst.swap.pathV3,
@@ -240,8 +235,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
             amountOutMinimum: _msgDst.swap.amountOutMinimum
         });
 
-        bool success;
-        (success, dstAmount) = _trySwapV3(_dstSwap, _amount);
+        (bool success, uint256 dstAmount) = _trySwapV3(_dstSwap, _amount);
         if (success) {
             _sendToken(address(_getLastBytes20(_dstSwap.path)), dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
             _afterTargetProcessing(_id, _amount, SwapStatus.Succeeded);
