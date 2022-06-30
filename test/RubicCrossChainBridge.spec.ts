@@ -22,9 +22,9 @@ const createFixtureLoader = waffle.createFixtureLoader;
 
 const envConfig = require('dotenv').config();
 const {
-    ROUTERS_POLYGON: TEST_ROUTERS,
-    NATIVE_POLYGON: TEST_NATIVE,
-    BUS_POLYGON_MAIN: TEST_BUS
+    ROUTERS_BSC: TEST_ROUTERS,
+    NATIVE_BSC: TEST_NATIVE,
+    BUS_BSC: TEST_BUS
 } = envConfig.parsed || {};
 
 describe('RubicCrossChainBridge', () => {
@@ -63,6 +63,11 @@ describe('RubicCrossChainBridge', () => {
                 version: VERSION,
                 path: [wnative.address, transitToken.address],
                 pathV3: '0x',
+                NFTPurchaseInfo: {
+                    marketID: 0,
+                    value: 0,
+                    data: '0x'
+                },
                 deadline: DEADLINE,
                 amountOutMinimum: DEFAULT_AMOUNT_OUT_MIN
             },
@@ -99,6 +104,11 @@ describe('RubicCrossChainBridge', () => {
                 version: VERSION,
                 path: [wnative.address, transitToken.address],
                 pathV3: '0x',
+                NFTPurchaseInfo: {
+                    marketID: 0,
+                    value: 0,
+                    data: '0x'
+                },
                 deadline: DEADLINE,
                 amountOutMinimum: DEFAULT_AMOUNT_OUT_MIN
             },
@@ -120,9 +130,15 @@ describe('RubicCrossChainBridge', () => {
             deadline = DEADLINE,
             amountOutMinimum = DEFAULT_AMOUNT_OUT_MIN,
             _receiver = wallet.address,
-            nativeOut = true
+            nativeOut = true,
+            /// NFT ///
+            marketID = 0,
+            value = BN.from('0'),
+            data = '0x'
         } = {}
     ): Promise<string> {
+        const NFTPurchaseInfo = { marketID, value, data };
+
         return messagesContract.getMessage(
             {
                 dex,
@@ -131,6 +147,7 @@ describe('RubicCrossChainBridge', () => {
                 version,
                 path,
                 pathV3,
+                NFTPurchaseInfo,
                 deadline,
                 amountOutMinimum
             },
@@ -154,9 +171,15 @@ describe('RubicCrossChainBridge', () => {
             _receiver = wallet.address,
             nativeOut = true,
             _srcChainId = chainId,
-            _dstChainId = DST_CHAIN_ID
+            _dstChainId = DST_CHAIN_ID,
+            /// NFT ///
+            marketID = 0,
+            value = BN.from('0'),
+            data = '0x'
         } = {}
     ): Promise<string> {
+        const NFTPurchaseInfo = { marketID, value, data };
+
         return messagesContract.getID(
             _receiver,
             _srcChainId,
@@ -168,6 +191,7 @@ describe('RubicCrossChainBridge', () => {
                 version,
                 path,
                 pathV3,
+                NFTPurchaseInfo,
                 deadline,
                 amountOutMinimum
             },
@@ -210,10 +234,10 @@ describe('RubicCrossChainBridge', () => {
                 await transitToken.approve(swapMain.address, ethers.constants.MaxUint256);
                 await swapMain.setMaxTokenAmount(
                     transitToken.address,
-                    ethers.utils.parseEther('1000')
+                    ethers.utils.parseEther('1')
                 );
 
-                await expect(callbridgeWithSwap()).to.be.revertedWith('amount too large');
+                await expect(callbridgeWithSwap()).to.be.revertedWith('greater than max');
             });
 
             it('Should fail transfering with small amount', async () => {
@@ -248,9 +272,11 @@ describe('RubicCrossChainBridge', () => {
             });
         });
         describe('#executeMessageWithTransfer', () => {
+            let platformFee;
             beforeEach('setup for target executions', async () => {
                 // transfer 1000 USDC
-                await transitToken.transfer(swapMain.address, ethers.BigNumber.from('1000000000'));
+                await transitToken.transfer(swapMain.address, DEFAULT_AMOUNT_IN.mul('100'));
+                platformFee = await swapMain.feeAmountOfBlockchain(DST_CHAIN_ID);
             });
             describe('target bridge should emit correct event', async () => {
                 let nonce: BN;
@@ -286,7 +312,7 @@ describe('RubicCrossChainBridge', () => {
                         _swapMain.executeMessageWithTransfer(
                             ethers.constants.AddressZero,
                             transitToken.address,
-                            ethers.BigNumber.from('1000000000'),
+                            DEFAULT_AMOUNT_IN,
                             DST_CHAIN_ID,
                             message,
                             EXECUTOR_ADDRESS
@@ -294,9 +320,10 @@ describe('RubicCrossChainBridge', () => {
                     ).to.emit(swapMain, 'SwapRequestDone');
                     let tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
                     // take only platform comission in transit token
-                    const platformFee = await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID);
-                    await expect(Number(tokenBalanceAfter)).to.be.eq(
-                        (Number(tokenBalanceBefore) * Number(platformFee)) / feeDecimals
+                    await expect(tokenBalanceBefore.sub(tokenBalanceAfter)).to.be.eq(
+                        DEFAULT_AMOUNT_IN.mul(BN.from(feeDecimals).sub(platformFee)).div(
+                            feeDecimals
+                        )
                     );
                 });
 
@@ -327,7 +354,7 @@ describe('RubicCrossChainBridge', () => {
 
                     await wnative
                         .connect(bus)
-                        .transfer(swapMain.address, ethers.utils.parseEther('1'));
+                        .transfer(swapMain.address, DEFAULT_AMOUNT_IN);
 
                     const _swapMain = swapMain.connect(bus);
 
@@ -343,7 +370,7 @@ describe('RubicCrossChainBridge', () => {
                         _swapMain.executeMessageWithTransfer(
                             ethers.constants.AddressZero,
                             wnative.address,
-                            ethers.BigNumber.from('1000000000000000000'), // 1 ether
+                            DEFAULT_AMOUNT_IN, // 1 ether
                             DST_CHAIN_ID,
                             message,
                             EXECUTOR_ADDRESS
@@ -351,9 +378,10 @@ describe('RubicCrossChainBridge', () => {
                     ).to.emit(swapMain, 'SwapRequestDone');
                     let tokenBalanceAfter = await wnative.balanceOf(swapMain.address);
                     // take only platform comission in transit token
-                    const platformFee = await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID);
-                    await expect(Number(tokenBalanceAfter)).to.be.eq(
-                        (Number(tokenBalanceBefore) * Number(platformFee)) / feeDecimals
+                    await expect(tokenBalanceBefore.sub(tokenBalanceAfter)).to.be.eq(
+                        DEFAULT_AMOUNT_IN.mul(BN.from(feeDecimals).sub(platformFee)).div(
+                            feeDecimals
+                        )
                     );
                 });
 
@@ -383,7 +411,7 @@ describe('RubicCrossChainBridge', () => {
                         _swapMain.executeMessageWithTransfer(
                             ethers.constants.AddressZero,
                             transitToken.address,
-                            ethers.BigNumber.from('1000000000'),
+                            DEFAULT_AMOUNT_IN,
                             DST_CHAIN_ID,
                             message,
                             EXECUTOR_ADDRESS
@@ -392,6 +420,10 @@ describe('RubicCrossChainBridge', () => {
                 });
 
                 describe('target bridge should take integrator & rubic fee', async () => {
+                    let integratorFee;
+                    let platformShare;
+                    let integratorPart;
+
                     beforeEach('set integrator and rubic fee', async () => {
                         await swapMain.setIntegratorFee(INTEGRATOR, '3000', '500000'); // 0.3 %
 
@@ -402,6 +434,15 @@ describe('RubicCrossChainBridge', () => {
                             path: [transitToken.address],
                             amountOutMinimum: ethers.BigNumber.from('0') // not used
                         });
+
+                        integratorFee = await swapMain.integratorFee(INTEGRATOR);
+                        platformShare = await swapMain.platformShare(INTEGRATOR);
+                        integratorPart = integratorFee
+                            .mul(BN.from(feeDecimals).sub(platformShare))
+                            .div(feeDecimals);
+                        platformFee = integratorFee
+                            .mul(await swapMain.platformShare(INTEGRATOR))
+                            .div(feeDecimals);
                     });
 
                     it('should successfully bridge transitToken with rubic & integrator fee', async () => {
@@ -424,7 +465,7 @@ describe('RubicCrossChainBridge', () => {
                             _swapMain.executeMessageWithTransfer(
                                 ethers.constants.AddressZero,
                                 transitToken.address,
-                                ethers.BigNumber.from('1000000000'),
+                                DEFAULT_AMOUNT_IN,
                                 DST_CHAIN_ID,
                                 message,
                                 EXECUTOR_ADDRESS
@@ -440,22 +481,16 @@ describe('RubicCrossChainBridge', () => {
                             INTEGRATOR
                         );
 
-                        const integratorFee =
-                            Number(await _swapMain.integratorFee(INTEGRATOR)) / feeDecimals;
-                        const platformFee =
-                            (integratorFee * Number(await _swapMain.platformShare(INTEGRATOR))) /
-                            feeDecimals;
-
-                        await expect(Number(integratorCollectedFee1)).to.be.eq(
-                            Number(tokenBalanceBefore) * (Number(integratorFee) - platformFee)
+                        await expect(integratorCollectedFee1).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(integratorPart).div(feeDecimals)
                         );
                         // take platform comission in transit token
-                        await expect(Number(collectedFee1)).to.be.eq(
-                            Number(tokenBalanceBefore) * Number(platformFee)
+                        await expect(collectedFee1).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(platformFee).div(feeDecimals)
                         );
 
-                        await expect(Number(tokenBalanceAfter)).to.be.eq(
-                            Number(integratorFee) * Number(tokenBalanceBefore)
+                        await expect(tokenBalanceBefore.sub(tokenBalanceAfter)).to.be.eq(
+                            DEFAULT_AMOUNT_IN.mul(feeDecimals.sub(integratorFee)).div(feeDecimals)
                         );
                     });
                 });
