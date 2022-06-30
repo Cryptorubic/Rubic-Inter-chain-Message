@@ -281,7 +281,9 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         address _to,
         bool _nativeOut
     ) external nonReentrant onlyManagerAndAdmin {
-        require(processedTransactions[_id] != SwapStatus.Succeeded && processedTransactions[_id] != SwapStatus.Fallback);
+        SwapStatus _status = processedTransactions[_id];
+        require(_status != SwapStatus.Succeeded && _status != SwapStatus.Fallback);
+
         _sendToken(_token, _amount, _to, _nativeOut);
         processedTransactions[_id] = SwapStatus.Fallback;
     }
