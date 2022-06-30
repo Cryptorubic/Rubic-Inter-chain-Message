@@ -49,21 +49,6 @@ contract TransferSwapV3 is TransferSwapBase {
         _swapAndSendMessageV3(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
     }
 
-//    function transferWithSwapV3(
-//        address _receiver,
-//        uint256 _amountIn,
-//        uint64 _dstChainId,
-//        SwapInfoV3 calldata _srcSwap,
-//        SwapInfoDest calldata _dstSwap,
-//        uint32 _maxBridgeSlippage
-//    ) external payable onlyEOA whenNotPaused {
-//        IERC20Upgradeable(address(_getFirstBytes20(_srcSwap.path))).safeTransferFrom(msg.sender, address(this), _amountIn);
-//
-//        uint256 _fee = _calculateCryptoFee(msg.value, _dstChainId);
-//
-//        _transferWithSwapV3(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee);
-//    }
-
     /**
      * @notice Sends a cross-chain transfer via the liquidity pool-based bridge and sends a message specifying a wanted swap action on the
                destination chain via the message bus

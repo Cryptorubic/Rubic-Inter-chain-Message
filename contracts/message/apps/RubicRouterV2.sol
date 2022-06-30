@@ -16,7 +16,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
     /// @dev This modifier prevents using executor functions
     modifier onlyExecutor(address _executor) {
-        require(hasRole(EXECUTOR_ROLE, _executor), 'SwapBase: caller is not an executor');
+        require(hasRole(EXECUTOR_ROLE, _executor), 'SwapBase: caller not an executor');
         _;
     }
 
@@ -176,7 +176,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     ) private {
         require(
             _token == _msgDst.swap.path[0],
-            'bridged token must be the same as the first token in destination swap path'
+            'first token must be the target'
         );
         require(_msgDst.swap.path.length == 1, 'dst bridge expected');
 
@@ -193,7 +193,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     ) private {
         require(
             _token == _msgDst.swap.path[0],
-            'bridged token must be the same as the first token in destination swap path'
+            'first token must be the target'
         );
         require(_msgDst.swap.path.length > 1, 'dst swap expected');
 
@@ -223,7 +223,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     ) private {
         require(
             _token == address(_getFirstBytes20(_msgDst.swap.pathV3)),
-            'bridged token must be the same as the first token in destination swap path'
+            'first token must be the target'
         );
         require(_msgDst.swap.pathV3.length > 20, 'dst swap expected');
 
