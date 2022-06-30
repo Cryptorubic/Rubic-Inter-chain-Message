@@ -179,6 +179,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
             'bridged token must be the same as the first token in destination swap path'
         );
         require(_msgDst.swap.path.length == 1, 'dst bridge expected');
+
         _sendToken(_msgDst.swap.path[0], _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
 
         _afterTargetProcessing(_id, _amount, SwapStatus.Succeeded);
@@ -197,7 +198,6 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         require(_msgDst.swap.path.length > 1, 'dst swap expected');
 
         uint256 dstAmount;
-        SwapStatus status;
 
         SwapInfoV2 memory _dstSwap = SwapInfoV2({
             dex: _msgDst.swap.dex,
@@ -217,8 +217,6 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
             dstAmount = _amount;
             _afterTargetProcessing(_id, _amount, SwapStatus.Fallback);
         }
-
-        emit SwapRequestDone(_id, dstAmount, status);
     }
 
     function _executeDstSwapV3(
@@ -234,7 +232,6 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         require(_msgDst.swap.pathV3.length > 20, 'dst swap expected');
 
         uint256 dstAmount;
-        SwapStatus status;
 
         SwapInfoV3 memory _dstSwap = SwapInfoV3({
             dex: _msgDst.swap.dex,
@@ -254,8 +251,6 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
             dstAmount = _amount;
             _afterTargetProcessing(_id, _amount, SwapStatus.Fallback);
         }
-
-        emit SwapRequestDone(_id, dstAmount, status);
     }
 
     function _sendToken(
