@@ -207,11 +207,10 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         (bool success, uint256 dstAmount) = _trySwapV2(_dstSwap, _amount);
         if (success) {
             _sendToken(_dstSwap.path[_dstSwap.path.length - 1], dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
-            _afterTargetProcessing(_id, _amount, SwapStatus.Succeeded);
+            _afterTargetProcessing(_id, dstAmount, SwapStatus.Succeeded);
         } else {
             // handle swap failure, send the received token directly to receiver
             _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
-            dstAmount = _amount;
             _afterTargetProcessing(_id, _amount, SwapStatus.Fallback);
         }
     }
@@ -238,11 +237,10 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         (bool success, uint256 dstAmount) = _trySwapV3(_dstSwap, _amount);
         if (success) {
             _sendToken(address(_getLastBytes20(_dstSwap.path)), dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
-            _afterTargetProcessing(_id, _amount, SwapStatus.Succeeded);
+            _afterTargetProcessing(_id, dstAmount, SwapStatus.Succeeded);
         } else {
             // handle swap failure, send the received token directly to receiver
             _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
-            dstAmount = _amount;
             _afterTargetProcessing(_id, _amount, SwapStatus.Fallback);
         }
     }
