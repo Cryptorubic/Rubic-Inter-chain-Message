@@ -7,9 +7,8 @@ import './TransferSwapV3.sol';
 import './TransferSwapInch.sol';
 import './BridgeSwap.sol';
 
-import 'hardhat/console.sol';
 
-contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
+contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwap {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
@@ -18,7 +17,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
 
     /// @dev This modifier prevents using executor functions
     modifier onlyExecutor(address _executor) {
-        require(hasRole(EXECUTOR_ROLE, _executor), 'SwapBase: caller is not an executor');
+        require(hasRole(EXECUTOR_ROLE, _executor), 'SwapBase: caller not an executor');
         _;
     }
 
@@ -101,7 +100,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
         _amount = calculateFee(m.swap.integrator, _amount, uint256(_srcChainId), _token);
 
         if (m.swap.version == SwapVersion.v3) {
-            //_executeDstSwapV3(_token, _amount, id, m);
+            _executeDstSwapV3(_token, _amount, id, m);
         } else if (m.swap.version == SwapVersion.bridge) {
             _executeDstBridge(_token, _amount, id, m);
         } else {
@@ -110,6 +109,11 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
 
         // always return true since swap failure is already handled in-place
         return ExecutionStatus.Success;
+    }
+
+    function _afterTargetProcessing(bytes32 _id, uint256 _amount, SwapStatus _status) private {
+        processedTransactions[_id] = _status;
+        emit SwapRequestDone(_id, _amount, _status);
     }
 
     /**
@@ -131,9 +135,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
 
         // Failed status means user hasn't received funds
-        SwapStatus status = SwapStatus.Failed;
-        processedTransactions[id] = status;
-        emit SwapRequestDone(id, _amount, status);
+        _afterTargetProcessing(id, _amount, SwapStatus.Failed);
         // always return Fail to mark this transfer as failed since if this function is called then there nothing more
         // we can do in this app as the swap failures are already handled in executeMessageWithTransfer
         return ExecutionStatus.Fail;
@@ -161,9 +163,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
 
         _sendToken(_token, _amount, m.receiver, m.swap.nativeOut);
 
-        SwapStatus status = SwapStatus.Fallback;
-        processedTransactions[id] = status;
-        emit SwapRequestDone(id, _amount, status);
+        _afterTargetProcessing(id, _amount, SwapStatus.Fallback);
 
         return ExecutionStatus.Success;
     }
@@ -177,16 +177,13 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
     ) private {
         require(
             _token == _msgDst.swap.path[0],
-            'bridged token must be the same as the first token in destination swap path'
+            'first token must be the target'
         );
         require(_msgDst.swap.path.length == 1, 'dst bridge expected');
+
         _sendToken(_msgDst.swap.path[0], _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
 
-        SwapStatus status;
-        status = SwapStatus.Succeeded;
-
-        processedTransactions[_id] = status;
-        emit SwapRequestDone(_id, _amount, status);
+        _afterTargetProcessing(_id, _amount, SwapStatus.Succeeded);
     }
 
     function _executeDstSwapV2(
@@ -197,12 +194,9 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
     ) private {
         require(
             _token == _msgDst.swap.path[0],
-            'bridged token must be the same as the first token in destination swap path'
+            'first token must be the target'
         );
         require(_msgDst.swap.path.length > 1, 'dst swap expected');
-
-        uint256 dstAmount;
-        SwapStatus status;
 
         SwapInfoV2 memory _dstSwap = SwapInfoV2({
             dex: _msgDst.swap.dex,
@@ -211,8 +205,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
             amountOutMinimum: _msgDst.swap.amountOutMinimum
         });
 
-        bool success;
-        (success, dstAmount) = _trySwapV2(_dstSwap, _amount);
+        (bool success, uint256 dstAmount) = _trySwapV2(_dstSwap, _amount);
         if (success) {
             if (_msgDst.swap.NFTPurchaseInfo.data.length != 0 && _msgDst.swap.NFTPurchaseInfo.marketID != 0){
                 address implementation = MPRegistry[_msgDst.swap.NFTPurchaseInfo.marketID];
@@ -234,52 +227,39 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
         } else {
             // handle swap failure, send the received token directly to receiver
             _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
-            dstAmount = _amount;
-            status = SwapStatus.Fallback;
-            processedTransactions[_id] = status;
+            _afterTargetProcessing(_id, _amount, SwapStatus.Fallback);
         }
-
-        emit SwapRequestDone(_id, dstAmount, status);
     }
 
-//    function _executeDstSwapV3(
-//        address _token,
-//        uint256 _amount,
-//        bytes32 _id,
-//        SwapRequestDest memory _msgDst
-//    ) private {
-//        require(
-//            _token == address(_getFirstBytes20(_msgDst.swap.pathV3)),
-//            'bridged token must be the same as the first token in destination swap path'
-//        );
-//        require(_msgDst.swap.pathV3.length > 20, 'dst swap expected');
-//
-//        uint256 dstAmount;
-//        SwapStatus status;
-//
-//        SwapInfoV3 memory _dstSwap = SwapInfoV3({
-//            dex: _msgDst.swap.dex,
-//            path: _msgDst.swap.pathV3,
-//            deadline: _msgDst.swap.deadline,
-//            amountOutMinimum: _msgDst.swap.amountOutMinimum
-//        });
-//
-//        bool success;
-//        (success, dstAmount) = _trySwapV3(_dstSwap, _amount);
-//        if (success) {
-//            _sendToken(address(_getLastBytes20(_dstSwap.path)), dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
-//            status = SwapStatus.Succeeded;
-//            processedTransactions[_id] = status;
-//        } else {
-//            // handle swap failure, send the received token directly to receiver
-//            _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
-//            dstAmount = _amount;
-//            status = SwapStatus.Fallback;
-//            processedTransactions[_id] = status;
-//        }
-//
-//        emit SwapRequestDone(_id, dstAmount, status);
-//    }
+    function _executeDstSwapV3(
+        address _token,
+        uint256 _amount,
+        bytes32 _id,
+        SwapRequestDest memory _msgDst
+    ) private {
+        require(
+            _token == address(_getFirstBytes20(_msgDst.swap.pathV3)),
+            'first token must be the target'
+        );
+        require(_msgDst.swap.pathV3.length > 20, 'dst swap expected');
+
+        SwapInfoV3 memory _dstSwap = SwapInfoV3({
+            dex: _msgDst.swap.dex,
+            path: _msgDst.swap.pathV3,
+            deadline: _msgDst.swap.deadline,
+            amountOutMinimum: _msgDst.swap.amountOutMinimum
+        });
+
+        (bool success, uint256 dstAmount) = _trySwapV3(_dstSwap, _amount);
+        if (success) {
+            _sendToken(address(_getLastBytes20(_dstSwap.path)), dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
+            _afterTargetProcessing(_id, dstAmount, SwapStatus.Succeeded);
+        } else {
+            // handle swap failure, send the received token directly to receiver
+            _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
+            _afterTargetProcessing(_id, _amount, SwapStatus.Fallback);
+        }
+    }
 
     function _sendToken(
         address _token,
@@ -309,7 +289,9 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapInch, BridgeSwap {
         address _to,
         bool _nativeOut
     ) external nonReentrant onlyManagerAndAdmin {
-        require(processedTransactions[_id] != SwapStatus.Succeeded && processedTransactions[_id] != SwapStatus.Fallback);
+        SwapStatus _status = processedTransactions[_id];
+        require(_status != SwapStatus.Succeeded && _status != SwapStatus.Fallback);
+
         _sendToken(_token, _amount, _to, _nativeOut);
         processedTransactions[_id] = SwapStatus.Fallback;
     }

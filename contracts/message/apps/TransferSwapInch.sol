@@ -2,9 +2,9 @@
 
 pragma solidity >=0.8.9;
 
-import './SwapBase.sol';
+import './TransferSwapBase.sol';
 
-contract TransferSwapInch is SwapBase {
+contract TransferSwapInch is TransferSwapBase {
     using AddressUpgradeable for address payable;
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
@@ -18,14 +18,17 @@ contract TransferSwapInch is SwapBase {
         SwapInfoInch calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
-    ) external payable onlyEOA whenNotPaused {
-        require(_srcSwap.path[0] == nativeWrap, 'token mismatch');
-        require(msg.value >= _amountIn, 'Amount insufficient');
-        IWETH(nativeWrap).deposit{value: _amountIn}();
+    ) external payable {
+        address srcInputToken = _srcSwap.path[0];
+        address srcOutputToken = _srcSwap.path[_srcSwap.path.length - 1];
 
-        uint256 _fee = _calculateCryptoFee(msg.value - _amountIn, _dstChainId);
+        uint256 _fee = _deriveFeeAndPerformChecksNative(
+            _amountIn,
+            _dstChainId,
+            srcInputToken
+        );
 
-        _transferWithSwapInch(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee);
+        _swapAndSendMessageInch(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
     }
 
     function transferWithSwapInch(
@@ -36,11 +39,16 @@ contract TransferSwapInch is SwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable onlyEOA whenNotPaused {
-        IERC20Upgradeable(_srcSwap.path[0]).safeTransferFrom(msg.sender, address(this), _amountIn);
+        address srcInputToken = _srcSwap.path[0];
+        address srcOutputToken = _srcSwap.path[_srcSwap.path.length - 1];
 
-        uint256 _fee = _calculateCryptoFee(msg.value, _dstChainId);
+        uint256 _fee = _deriveFeeAndPerformChecks(
+            _amountIn,
+            _dstChainId,
+            srcInputToken
+        );
 
-        _transferWithSwapInch(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee);
+        _swapAndSendMessageInch(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
     }
 
     /**
@@ -57,77 +65,39 @@ contract TransferSwapInch is SwapBase {
      *        transfer can be refunded.
      * @param _fee the fee to pay to MessageBus.
      */
-    function _transferWithSwapInch(
+    function _swapAndSendMessageInch(
         address _receiver,
         uint256 _amountIn,
         uint64 _dstChainId,
         SwapInfoInch calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage,
-        uint256 _fee
+        uint256 _fee,
+        /// Different
+        address srcInputToken,
+        address srcOutputToken
     ) private {
-        nonce += 1;
-        uint64 chainId = uint64(block.chainid);
+        uint64 _chainId = uint64(block.chainid);
+        uint64 _nonce = _beforeSwapAndSendMessage();
 
-        require(_srcSwap.path.length > 1 && _dstChainId != chainId, 'empty src swap path or same chain id');
+        require(_srcSwap.path.length > 1 && _dstChainId != _chainId, 'empty swap or same chainIDs');
 
-        address srcTokenOut = _srcSwap.path[_srcSwap.path.length - 1];
-        uint256 srcAmtOut = _amountIn;
+        (bool success, uint256 srcAmtOut) = _trySwapInch(_srcSwap, _amountIn);
 
-        // swap source token for transit token on the source DEX
-        bool success;
-        (success, srcAmtOut) = _trySwapInch(_srcSwap, _amountIn);
-        if (!success) revert('src swap failed');
-
-        require(srcAmtOut >= minTokenAmount[srcTokenOut], 'amount must be greater than min swap amount');
-        require(srcAmtOut <= maxTokenAmount[srcTokenOut], 'amount must be lower than max swap amount');
-
-        _crossChainTransferWithSwapInch(
+        bytes32 id = _sendMessage(
             _receiver,
-            _amountIn,
-            chainId,
+            _chainId,
             _dstChainId,
-            _srcSwap,
             _dstSwap,
             _maxBridgeSlippage,
-            nonce,
-            _fee,
-            srcTokenOut,
-            srcAmtOut
-        );
-    }
-
-    function _crossChainTransferWithSwapInch(
-        address _receiver,
-        uint256 _amountIn,
-        uint64 _chainId,
-        uint64 _dstChainId,
-        SwapInfoInch calldata _srcSwap,
-        SwapInfoDest calldata _dstSwap,
-        uint32 _maxBridgeSlippage,
-        uint64 _nonce,
-        uint256 _fee,
-        address srcTokenOut,
-        uint256 srcAmtOut
-    ) private {
-        require(_dstSwap.path.length > 0, 'empty dst swap path');
-        bytes memory message = abi.encode(
-            SwapRequestDest({swap: _dstSwap, receiver: msg.sender, nonce: nonce, dstChainId: _dstChainId})
-        );
-        bytes32 id = _computeSwapRequestId(msg.sender, _chainId, _dstChainId, message);
-
-        sendMessageWithTransfer(
-            _receiver,
-            srcTokenOut,
-            srcAmtOut,
-            _dstChainId,
             _nonce,
-            _maxBridgeSlippage,
-            message,
-            MsgDataTypes.BridgeSendType.Liquidity,
-            _fee
+            _fee,
+            srcOutputToken,
+            srcAmtOut,
+            success
         );
-        emit SwapRequestSentInch(id, _dstChainId, _amountIn, _srcSwap.path[0]);
+
+        emit SwapRequestSentInch(id, _dstChainId, _amountIn, srcInputToken);
     }
 
     function _trySwapInch(SwapInfoInch memory _swap, uint256 _amount) internal returns (bool ok, uint256 amountOut) {
