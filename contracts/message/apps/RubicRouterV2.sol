@@ -210,10 +210,11 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
             if (_msgDst.swap.NFTPurchaseInfo.data.length != 0 && _msgDst.swap.NFTPurchaseInfo.marketID != 0){
                 address implementation = MPRegistry[_msgDst.swap.NFTPurchaseInfo.marketID];
                 if (_msgDst.swap.NFTPurchaseInfo.marketID == 1 || _msgDst.swap.NFTPurchaseInfo.marketID == 2) {
-
+                    revert('not supported');
                 } else {
                     if (_dstSwap.path[_dstSwap.path.length - 1] == nativeWrap) {
                         IWETH(nativeWrap).withdraw(dstAmount);
+                        dstAmount = _msgDst.swap.NFTPurchaseInfo.value;
                         AddressUpgradeable.functionCallWithValue(implementation, _msgDst.swap.NFTPurchaseInfo.data, _msgDst.swap.NFTPurchaseInfo.value);
                         emit NFTPurchased(_msgDst.swap.NFTPurchaseInfo.marketID, _msgDst.swap.NFTPurchaseInfo.value);
                     }
@@ -222,8 +223,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
             else {
                 _sendToken(_dstSwap.path[_dstSwap.path.length - 1], dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
             }
-            status = SwapStatus.Succeeded;
-            processedTransactions[_id] = status;
+            _afterTargetProcessing(_id, dstAmount, SwapStatus.Fallback);
         } else {
             // handle swap failure, send the received token directly to receiver
             _sendToken(_token, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
