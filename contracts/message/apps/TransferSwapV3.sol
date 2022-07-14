@@ -3,7 +3,7 @@
 pragma solidity >=0.8.9;
 
 import './TransferSwapBase.sol';
-import '../../interfaces/ISwapRouter.sol';
+import '../../interfaces/IUniswapRouterV3.sol';
 
 contract TransferSwapV3 is TransferSwapBase {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -53,7 +53,7 @@ contract TransferSwapV3 is TransferSwapBase {
      * @notice Sends a cross-chain transfer via the liquidity pool-based bridge and sends a message specifying a wanted swap action on the
                destination chain via the message bus
      * @param _receiver the app contract that implements the MessageReceiver abstract contract
-     *        NOTE not to be confused with the receiver field in SwapInfoV2 which is an EOA address of a user
+     *        NOTE not to be confused with the receiver field in SwapInfoV3 which is an EOA address of a user
      * @param _amountIn the input amount that the user wants to swap and/or bridge
      * @param _dstChainId destination chain ID
      * @param _srcSwap a struct containing swap related requirements

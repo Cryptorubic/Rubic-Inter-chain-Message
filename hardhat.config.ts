@@ -9,12 +9,13 @@ import '@openzeppelin/hardhat-upgrades';
 import { SolcUserConfig } from 'hardhat/types'
 
 import * as dotenv from 'dotenv';
+import {float} from "hardhat/internal/core/params/argumentTypes";
 dotenv.config();
 const DEFAULT_PRIVATE_KEY = process.env.MNEMONIC || '1000000000000000000000000000000000000000000000000000000000000000';
 
 
 const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
-  version: '0.8.9',
+  version: '0.8.15',
   settings: {
     optimizer: {
       enabled: true,
