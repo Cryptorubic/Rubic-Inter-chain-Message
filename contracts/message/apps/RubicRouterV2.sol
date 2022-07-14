@@ -48,23 +48,19 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     }
 
     function initialize(
+        uint256 _fixedCryptoFee,
         uint256[] memory _blockchainIDs,
-        uint256[] memory _cryptoFees,
-        uint256[] memory _platformFees,
+        uint256[] memory _blockchainToGasFee,
+        uint256[] memory _blockchainToRubicPlatformFee,
         address[] memory _tokens,
         uint256[] memory _minTokenAmounts,
         uint256[] memory _maxTokenAmounts,
         address[] memory _routers
     ) private initializer {
-        __MultipleTransitTokenInit(
-            _blockchainIDs,
-            _cryptoFees,
-            _platformFees,
-            _tokens,
-            _minTokenAmounts,
-            _maxTokenAmounts,
-            _routers
-        );
+        __MultipleTransitTokenInitUnchained(_tokens, _minTokenAmounts, _maxTokenAmounts);
+        __WithDestinationFunctionalityInitUnchained(_blockchainIDs, _blockchainToGasFee, _blockchainToRubicPlatformFee);
+        __BridgeBaseInit(_fixedCryptoFee, _routers);
+
     }
 
     /**

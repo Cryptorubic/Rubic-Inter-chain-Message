@@ -3,12 +3,13 @@
 pragma solidity >=0.8.9;
 
 import 'rubic-bridge-base/contracts/tokens/MultipleTransitToken.sol';
+import 'rubic-bridge-base/contracts/architecture/WithDestinationFunctionality.sol';
 
 import '../framework/MessageSenderApp.sol';
 import '../framework/MessageReceiverApp.sol';
 import '../../interfaces/IWETH.sol';
 
-contract SwapBase is MultipleTransitToken, MessageSenderApp, MessageReceiverApp{
+contract SwapBase is MultipleTransitToken, MessageSenderApp, MessageReceiverApp, WithDestinationFunctionality {
     using SafeERC20 for IERC20;
 
     bytes32 public constant EXECUTOR_ROLE = keccak256('EXECUTOR_ROLE');
@@ -100,8 +101,8 @@ contract SwapBase is MultipleTransitToken, MessageSenderApp, MessageReceiverApp{
     // ============== fee logic ==============
 
     function _calculateCryptoFee(uint256 _fee, uint64 _dstChainId) internal view returns (uint256 updatedFee) {
-        require(_fee >= blockchainCryptoFee[_dstChainId], 'too few crypto fee');
-        uint256 _updatedFee = _fee - blockchainCryptoFee[_dstChainId];
+        require(_fee >= blockchainToGasFee[_dstChainId], 'too few crypto fee');
+        uint256 _updatedFee = _fee - blockchainToGasFee[_dstChainId];
         return (_updatedFee);
     }
 }

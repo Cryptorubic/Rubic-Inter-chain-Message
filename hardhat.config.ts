@@ -138,7 +138,7 @@ module.exports = {
   contractSizer: {
     alphaSort: false,
     disambiguatePaths: true,
-    runOnCompile: false
+    runOnCompile: true
   },
   typechain: {
     outDir: 'typechain',
