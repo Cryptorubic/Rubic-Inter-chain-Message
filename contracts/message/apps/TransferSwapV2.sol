@@ -25,7 +25,8 @@ contract TransferSwapV2 is TransferSwapBase {
         uint256 _fee = _deriveFeeAndPerformChecksNative(
             _amountIn,
             _dstChainId,
-            srcInputToken
+            srcInputToken,
+            _dstSwap.integrator
         );
 
         _swapAndSendMessageV2(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
@@ -45,7 +46,8 @@ contract TransferSwapV2 is TransferSwapBase {
         uint256 _fee = _deriveFeeAndPerformChecks(
             _amountIn,
             _dstChainId,
-            srcInputToken
+            srcInputToken,
+            _dstSwap.integrator
         );
 
         _swapAndSendMessageV2(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
@@ -105,7 +107,7 @@ contract TransferSwapV2 is TransferSwapBase {
             return (false, 0);
         }
 
-        smartApprove(_swap.path[0], _amount, _swap.dex);
+        SmartApprove.smartApprove(_swap.path[0], _amount, _swap.dex);
 
         try
             IUniswapV2Router02(_swap.dex).swapExactTokensForTokens(

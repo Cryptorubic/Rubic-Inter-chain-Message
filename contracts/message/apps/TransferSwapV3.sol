@@ -24,7 +24,8 @@ contract TransferSwapV3 is TransferSwapBase {
         uint256 _fee = _deriveFeeAndPerformChecksNative(
             _amountIn,
             _dstChainId,
-            srcInputToken
+            srcInputToken,
+            _dstSwap.integrator
         );
 
         _swapAndSendMessageV3(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
@@ -43,7 +44,8 @@ contract TransferSwapV3 is TransferSwapBase {
         uint256 _fee = _deriveFeeAndPerformChecks(
             _amountIn,
             _dstChainId,
-            srcInputToken
+            srcInputToken,
+            _dstSwap.integrator
         );
 
         _swapAndSendMessageV3(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
@@ -103,7 +105,7 @@ contract TransferSwapV3 is TransferSwapBase {
             return (false, 0);
         }
 
-        smartApprove(address(_getFirstBytes20(_swap.path)), _amount, _swap.dex);
+        SmartApprove.smartApprove(address(_getFirstBytes20(_swap.path)), _amount, _swap.dex);
 
         IUniswapRouterV3.ExactInputParams memory paramsV3 = IUniswapRouterV3.ExactInputParams(
             _swap.path,

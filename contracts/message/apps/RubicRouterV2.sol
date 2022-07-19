@@ -21,25 +21,27 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     }
 
     constructor(
-        uint256[] memory _blockchainIDs,
-        uint256[] memory _cryptoFees,
-        uint256[] memory _platformFees,
+        uint256 _fixedCryptoFee,
+        address[] memory _routers,
         address[] memory _tokens,
         uint256[] memory _minTokenAmounts,
         uint256[] memory _maxTokenAmounts,
-        address[] memory _routers,
+        uint256[] memory _blockchainIDs,
+        uint256[] memory _blockchainToGasFee,
+        uint256[] memory _blockchainToRubicPlatformFee,
         address _executor,
         address _messageBus,
         address _nativeWrap
     ) {
         initialize(
-            _blockchainIDs,
-            _cryptoFees,
-            _platformFees,
+            _fixedCryptoFee,
+            _routers,
             _tokens,
             _minTokenAmounts,
             _maxTokenAmounts,
-            _routers
+            _blockchainIDs,
+            _blockchainToGasFee,
+            _blockchainToRubicPlatformFee
         );
 
         nativeWrap = _nativeWrap;
@@ -49,18 +51,24 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
     function initialize(
         uint256 _fixedCryptoFee,
-        uint256[] memory _blockchainIDs,
-        uint256[] memory _blockchainToGasFee,
-        uint256[] memory _blockchainToRubicPlatformFee,
+        address[] memory _routers,
         address[] memory _tokens,
         uint256[] memory _minTokenAmounts,
         uint256[] memory _maxTokenAmounts,
-        address[] memory _routers
+        uint256[] memory _blockchainIDs,
+        uint256[] memory _blockchainToGasFee,
+        uint256[] memory _blockchainToRubicPlatformFee
     ) private initializer {
-        __MultipleTransitTokenInitUnchained(_tokens, _minTokenAmounts, _maxTokenAmounts);
-        __WithDestinationFunctionalityInitUnchained(_blockchainIDs, _blockchainToGasFee, _blockchainToRubicPlatformFee);
-        __BridgeBaseInit(_fixedCryptoFee, _routers);
-
+        __WithDestinationFunctionalityInit(
+            _fixedCryptoFee,
+            _routers,
+            _tokens,
+            _minTokenAmounts,
+            _maxTokenAmounts,
+            _blockchainIDs,
+            _blockchainToGasFee,
+            _blockchainToRubicPlatformFee
+        );
     }
 
     /**
@@ -92,7 +100,13 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
 
-        _amount = calculateFee(m.swap.integrator, _amount, uint256(_srcChainId), _token);
+        _amount = accrueTokenFees(
+            m.swap.integrator,
+            integratorToFeeInfo[m.swap.integrator],
+            _amount,
+            uint256(_srcChainId),
+            _token
+        );
 
         if (m.swap.version == SwapVersion.v3) {
             _executeDstSwapV3(_token, _amount, id, m);
@@ -249,17 +263,17 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     ) private {
         if (_token == nativeWrap && _nativeOut == true) {
             IWETH(nativeWrap).withdraw(_amount);
-            _sendToken(address(0), _amount, _receiver);
+            sendToken(address(0), _amount, _receiver);
         } else {
-            _sendToken(_token, _amount, _receiver);
+            sendToken(_token, _amount, _receiver);
         }
     }
 
     function sweepTokens(
         address _token,
         uint256 _amount
-    ) external onlyManagerAndAdmin {
-        _sendToken(_token, _amount, msg.sender);
+    ) external onlyManagerOrAdmin {
+        sendToken(_token, _amount, msg.sender);
     }
 
     function manualRefund(
@@ -268,7 +282,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         uint256 _amount,
         address _to,
         bool _nativeOut
-    ) external nonReentrant onlyManagerAndAdmin {
+    ) external nonReentrant onlyManagerOrAdmin {
         SwapStatus _status = processedTransactions[_id];
         require(_status != SwapStatus.Succeeded && _status != SwapStatus.Fallback);
 
@@ -276,11 +290,11 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         processedTransactions[_id] = SwapStatus.Fallback;
     }
 
-    function setNativeWrap(address _nativeWrap) external onlyManagerAndAdmin {
+    function setNativeWrap(address _nativeWrap) external onlyManagerOrAdmin {
         nativeWrap = _nativeWrap;
     }
 
-    function setMessageBus(address _messageBus) public onlyManagerAndAdmin {
+    function setMessageBus(address _messageBus) public onlyManagerOrAdmin {
         messageBus = _messageBus;
         emit MessageBusUpdated(messageBus);
     }

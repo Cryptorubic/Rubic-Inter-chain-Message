@@ -2,9 +2,9 @@
 
 pragma solidity >=0.8.0;
 
+import 'rubic-bridge-base/contracts/libraries/SmartApprove.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import 'rubic-bridge-base/contracts/BridgeBase.sol';
 import '../../interfaces/IBridge.sol';
 import '../../interfaces/IOriginalTokenVault.sol';
 import '../../interfaces/IOriginalTokenVaultV2.sol';
@@ -13,7 +13,7 @@ import '../../interfaces/IPeggedTokenBridgeV2.sol';
 import '../../interfaces/IMessageBus.sol';
 import './MsgDataTypes.sol';
 
-contract MessageSenderLib is BridgeBase {
+library MessageSenderLib {
     using SafeERC20 for IERC20;
 
     // ============== Internal library functions called by apps ==============
@@ -94,7 +94,7 @@ contract MessageSenderLib is BridgeBase {
         uint256 _fee
     ) internal returns (bytes32) {
         address bridge = IMessageBus(_messageBus).liquidityBridge();
-        smartApprove(_token, _amount, bridge);
+        SmartApprove.smartApprove(_token, _amount, bridge);
         // IERC20(_token).safeIncreaseAllowance(bridge, _amount); // TODO gas diff?
         IBridge(bridge).send(_receiver, _token, _amount, _dstChainId, _nonce, _maxSlippage);
         bytes32 transferId = keccak256(

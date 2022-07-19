@@ -2,6 +2,7 @@
 
 pragma solidity >=0.8.9;
 
+import 'rubic-bridge-base/contracts/libraries/SmartApprove.sol';
 import './SwapBase.sol';
 
 contract TransferSwapBase is SwapBase {
@@ -11,6 +12,7 @@ contract TransferSwapBase is SwapBase {
     function _deriveFeeAndPerformChecksNative(
         uint256 _amountIn,
         uint64 _dstChainId,
+        address _integrator,
         /// Different
         address srcInputToken
     ) internal onlyEOA whenNotPaused returns(uint256 _fee){
@@ -18,18 +20,19 @@ contract TransferSwapBase is SwapBase {
         require(msg.value >= _amountIn, 'Amount insufficient');
         IWETH(nativeWrap).deposit{value: _amountIn}();
 
-        _fee = _calculateCryptoFee(msg.value - _amountIn, _dstChainId);
+        _fee = msg.value - _amountIn - accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
     }
 
     function _deriveFeeAndPerformChecks(
         uint256 _amountIn,
         uint64 _dstChainId,
+        address _integrator,
         /// Different
         address srcInputToken
     ) internal onlyEOA whenNotPaused returns(uint256 _fee){
         IERC20Upgradeable(srcInputToken).safeTransferFrom(msg.sender, address(this), _amountIn);
 
-        _fee = _calculateCryptoFee(msg.value, _dstChainId);
+        _fee = msg.value - accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
     }
 
     function _beforeSwapAndSendMessage() internal returns (uint64) {
@@ -51,7 +54,7 @@ contract TransferSwapBase is SwapBase {
         if (!_success) revert('src swap failed');
 
         require(_srcAmtOut >= minTokenAmount[_srcOutputToken], 'less than min');
-        require(_srcAmtOut <= maxTokenAmount[_srcOutputToken], 'greater than max');
+        require(_srcAmtOut <= maxTokenAmount[_srcOutputToken], 'greater than max'); //TODO: check for zero
 
         id = _crossChainTransferWithSwap(
             _receiver,
