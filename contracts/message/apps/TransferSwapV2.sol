@@ -9,8 +9,6 @@ contract TransferSwapV2 is TransferSwapBase {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-    event SwapRequestSentV2(bytes32 id, uint64 dstChainId, uint256 srcAmount, address srcToken);
-
     function transferWithSwapV2Native(
         address _receiver,
         uint256 _amountIn,
@@ -79,17 +77,27 @@ contract TransferSwapV2 is TransferSwapBase {
         address srcInputToken,
         address srcOutputToken
     ) private {
+        BaseCrossChainParams memory _baseParams = BaseCrossChainParams(
+            srcInputToken,
+            _amountIn,
+            _dstChainId,
+            _retrieveDstTokenAddress(_dstSwap),
+            _dstSwap.amountOutMinimum,
+            msg.sender,
+            _dstSwap.integrator
+        );
+
         uint64 _chainId = uint64(block.chainid);
         uint64 _nonce = _beforeSwapAndSendMessage();
 
-        require(_srcSwap.path.length > 1 && _dstChainId != _chainId, 'empty swap or same chainIDs');
+        require(_srcSwap.path.length > 1 && _baseParams.dstChainID != _chainId, 'empty swap or same chainIDs');
 
         (bool success, uint256 srcAmtOut) = _trySwapV2(_srcSwap, _amountIn);
 
         bytes32 id = _sendMessage(
             _receiver,
             _chainId,
-            _dstChainId,
+            uint64(_baseParams.dstChainID),
             _dstSwap,
             _maxBridgeSlippage,
             _nonce,
@@ -99,7 +107,10 @@ contract TransferSwapV2 is TransferSwapBase {
             success
         );
 
-        emit SwapRequestSentV2(id, _dstChainId, _amountIn, srcInputToken);
+        emit CrossChainRequestSent(
+            id,
+            _baseParams
+        );
     }
 
     function _trySwapV2(SwapInfoV2 memory _swap, uint256 _amount) internal returns (bool ok, uint256 amountOut) {

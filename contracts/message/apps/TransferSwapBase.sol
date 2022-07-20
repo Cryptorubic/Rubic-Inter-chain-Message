@@ -14,7 +14,7 @@ contract TransferSwapBase is SwapBase {
         uint64 _dstChainId,
         address _integrator,
         /// Different
-        address srcInputToken
+        address srcInputToken //TODO: possible to remove this parameter at all?
     ) internal onlyEOA whenNotPaused returns(uint256 _fee){
         require(srcInputToken == nativeWrap, 'token mismatch');
         require(msg.value >= _amountIn, 'Amount insufficient');
@@ -37,6 +37,20 @@ contract TransferSwapBase is SwapBase {
 
     function _beforeSwapAndSendMessage() internal returns (uint64) {
         return ++nonce;
+    }
+
+    function _retrieveDstTokenAddress(SwapInfoDest memory _swapInfo) internal pure returns(address) {
+        if (_swapInfo.version == SwapVersion.v3) {
+            require(_swapInfo.pathV3.length > 20, 'dst swap expected');
+
+            return address(_getLastBytes20(_swapInfo.pathV3));
+        } else if (_swapInfo.version == SwapVersion.v2) {
+            require(_swapInfo.path.length > 1, 'dst swap expected');
+
+            return _swapInfo.path[_swapInfo.path.length -1];
+        } else {
+            return _swapInfo.path[_swapInfo.path.length -1];
+        }
     }
 
     function _sendMessage(
