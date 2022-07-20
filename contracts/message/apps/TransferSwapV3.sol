@@ -9,8 +9,6 @@ contract TransferSwapV3 is TransferSwapBase {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-    event SwapRequestSentV3(bytes32 id, uint64 dstChainId, uint256 srcAmount, address srcToken);
-
     function transferWithSwapV3Native(
         address _receiver,
         uint256 _amountIn,

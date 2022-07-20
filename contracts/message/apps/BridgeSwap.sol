@@ -7,8 +7,6 @@ import './TransferSwapBase.sol';
 contract BridgeSwap is TransferSwapBase {
     using SafeERC20 for IERC20;
 
-    event BridgeRequestSent(bytes32 id, uint64 dstChainId, uint256 srcAmount, address srcToken);
-
     function bridgeWithSwapNative(
         address _receiver,
         uint256 _amountIn,
