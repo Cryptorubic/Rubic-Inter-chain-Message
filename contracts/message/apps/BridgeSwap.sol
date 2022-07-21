@@ -75,7 +75,8 @@ contract BridgeSwap is TransferSwapBase {
             _retrieveDstTokenAddress(_dstSwap),
             _dstSwap.amountOutMinimum,
             msg.sender,
-            _dstSwap.integrator
+            _dstSwap.integrator,
+            address(0)
         );
 
         uint64 _chainId = uint64(block.chainid);

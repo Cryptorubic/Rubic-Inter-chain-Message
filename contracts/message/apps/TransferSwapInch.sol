@@ -84,7 +84,8 @@ contract TransferSwapInch is TransferSwapBase {
             _retrieveDstTokenAddress(_dstSwap),
             _dstSwap.amountOutMinimum,
             msg.sender,
-            _dstSwap.integrator
+            _dstSwap.integrator,
+            _srcSwap.dex
         );
 
         uint64 _chainId = uint64(block.chainid);
