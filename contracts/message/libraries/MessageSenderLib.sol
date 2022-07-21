@@ -6,10 +6,6 @@ import 'rubic-bridge-base/contracts/libraries/SmartApprove.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '../../interfaces/IBridge.sol';
-import '../../interfaces/IOriginalTokenVault.sol';
-import '../../interfaces/IOriginalTokenVaultV2.sol';
-import '../../interfaces/IPeggedTokenBridge.sol';
-import '../../interfaces/IPeggedTokenBridgeV2.sol';
 import '../../interfaces/IMessageBus.sol';
 import './MsgDataTypes.sol';
 
