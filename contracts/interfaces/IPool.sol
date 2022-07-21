@@ -2,7 +2,7 @@
 
 pragma solidity >=0.8.9;
 
-interface IPool {
+interface IPool { // TODO USELESS?
     function addLiquidity(address _token, uint256 _amount) external;
 
     function withdraws(bytes32 withdrawId) external view returns (bool);

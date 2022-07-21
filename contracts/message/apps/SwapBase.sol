@@ -16,6 +16,19 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp, WithDestinationFuncti
     address public nativeWrap;
     uint64 public nonce;
 
+    mapping(bytes32 => RefundData) public refundDetails; // TODO to WDF
+
+    // ============== struct for refunds ==============
+
+    struct RefundData {
+        // TODO to WDF
+        address integrator; // integrator address in order to take commission
+        address token; // transit token
+        uint256 amount; // amount of transit token
+        address to; // recipient
+        bool nativeOut; // receive wrapped/native
+    }
+
     // ============== struct for V2 like dexes ==============
 
     struct SwapInfoV2 {

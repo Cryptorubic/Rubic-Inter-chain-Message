@@ -14,59 +14,60 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status); // TODO add params
 
     /// @dev This modifier prevents using executor functions
-    modifier onlyExecutor(address _executor) { // TODO remove to relayer
+    modifier onlyExecutor(address _executor) {
+        // TODO remove to relayer
         require(hasRole(EXECUTOR_ROLE, _executor), 'SwapBase: caller not an executor');
         _;
     }
 
     constructor(
         uint256 _fixedCryptoFee,
+        uint256 _RubicPlatformFee,
         address[] memory _routers,
         address[] memory _tokens,
         uint256[] memory _minTokenAmounts,
         uint256[] memory _maxTokenAmounts,
         uint256[] memory _blockchainIDs,
         uint256[] memory _blockchainToGasFee,
-        uint256[] memory _blockchainToRubicPlatformFee,
-        address _executor,
+        address _relayer,
         address _messageBus,
         address _nativeWrap
     ) {
         initialize(
             _fixedCryptoFee,
+            _RubicPlatformFee,
             _routers,
             _tokens,
             _minTokenAmounts,
             _maxTokenAmounts,
             _blockchainIDs,
-            _blockchainToGasFee,
-            _blockchainToRubicPlatformFee
+            _blockchainToGasFee
         );
 
         nativeWrap = _nativeWrap;
         messageBus = _messageBus;
-        _setupRole(EXECUTOR_ROLE, _executor);
+        _setupRole(RELAYER_ROLE, _relayer);
     }
 
     function initialize(
         uint256 _fixedCryptoFee,
+        uint256 _RubicPlatformFee,
         address[] memory _routers,
         address[] memory _tokens,
         uint256[] memory _minTokenAmounts,
         uint256[] memory _maxTokenAmounts,
         uint256[] memory _blockchainIDs,
-        uint256[] memory _blockchainToGasFee,
-        uint256[] memory _blockchainToRubicPlatformFee
+        uint256[] memory _blockchainToGasFee
     ) private initializer {
         __WithDestinationFunctionalityInit(
             _fixedCryptoFee,
+            _RubicPlatformFee,
             _routers,
             _tokens,
             _minTokenAmounts,
             _maxTokenAmounts,
             _blockchainIDs,
-            _blockchainToGasFee,
-            _blockchainToRubicPlatformFee
+            _blockchainToGasFee
         );
     }
 
@@ -99,13 +100,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
 
-        _amount = accrueTokenFees(
-            m.swap.integrator,
-            integratorToFeeInfo[m.swap.integrator],
-            _amount,
-            uint256(_srcChainId),
-            _token
-        );
+        _amount = accrueTokenFees(m.swap.integrator, integratorToFeeInfo[m.swap.integrator], _amount, 0, _token);
 
         address _outputToken = _retrieveDstTokenAddress(m.swap);
 
@@ -121,20 +116,15 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         return ExecutionStatus.Success;
     }
 
-    function _afterTargetProcessing(bytes32 _id, uint256 _amount, SwapStatus _status) private {
-        processedTransactions[_id] = _status;
-        emit SwapRequestDone(_id, _params, _status); // TODO blockchain parapms struct
-    }
-
     /**
      * @notice called by MessageBus when the executeMessageWithTransfer call fails. does nothing but emitting a "fail" event
      * @param _srcChainId source chain ID
-     * @param _message SwapRequest message that defines the swap behavior on this destination chain
+     * @param _message SwapRequestDst message that defines the swap behavior on this destination chain
      * execution on dst chain
      */
     function executeMessageWithTransferFallback(
         address, // _sender
-        address, // _token
+        address  _token,
         uint256 _amount,
         uint64 _srcChainId,
         bytes calldata _message,
@@ -143,6 +133,9 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
 
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
+
+        // collect data about failed cross-chain for manual refund
+        refundDetails[id] = RefundData(m.swap.integrator, _token, _amount, m.receiver, m.swap.nativeOut);
 
         // Failed status means user hasn't received funds
         _afterTargetProcessing(id, _amount, SwapStatus.Failed);
@@ -185,12 +178,6 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         bytes32 _id,
         SwapRequestDest memory _msgDst
     ) private {
-        require(
-            _inputToken == _msgDst.swap.path[0], //TODO: strange require
-            'first token must be the target'
-        );
-        require(_msgDst.swap.path.length == 1, 'dst bridge expected');
-
         _sendToken(_inputToken, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
 
         _afterTargetProcessing(_id, _amount, SwapStatus.Succeeded);
@@ -203,10 +190,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         bytes32 _id,
         SwapRequestDest memory _msgDst
     ) private {
-        require(
-            _inputToken == _msgDst.swap.path[0],
-            'first token must be transit'
-        );
+        require(_inputToken == _msgDst.swap.path[0], 'first token must be transit'); // TODO modifier for _execute...
 
         SwapInfoV2 memory _dstSwap = SwapInfoV2({
             dex: _msgDst.swap.dex,
@@ -233,10 +217,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         bytes32 _id,
         SwapRequestDest memory _msgDst
     ) private {
-        require(
-            _inputToken == address(_getFirstBytes20(_msgDst.swap.pathV3)),
-            'first token must be transit'
-        );
+        require(_inputToken == address(_getFirstBytes20(_msgDst.swap.pathV3)), 'first token must be transit');
 
         SwapInfoV3 memory _dstSwap = SwapInfoV3({
             dex: _msgDst.swap.dex,
@@ -270,24 +251,34 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         }
     }
 
-    function sweepTokens(
-        address _token,
-        uint256 _amount
-    ) external onlyManagerOrAdmin { // TODO only admin
+    function _afterTargetProcessing(
+        bytes32 _id,
+        uint256 _amount,
+        SwapStatus _status
+    ) private {
+        processedTransactions[_id] = _status;
+        emit SwapRequestDone(_id, _amount, _status);
+    }
+
+    function sweepTokens(address _token, uint256 _amount) external onlyAdmin {
         sendToken(_token, _amount, msg.sender);
     }
 
-    function manualRefund(
-        bytes32 _id,
-        address _token,
-        uint256 _amount,
-        address _to,
-        bool _nativeOut
-    ) external nonReentrant onlyManagerOrAdmin { // TODO amount from id + fee
+    function manualRefund(bytes32 _id) external nonReentrant onlyManagerOrAdmin {
         SwapStatus _status = processedTransactions[_id];
         require(_status != SwapStatus.Succeeded && _status != SwapStatus.Fallback);
 
-        _sendToken(_token, _amount, _to, _nativeOut);
+        RefundData memory refundParams = refundDetails[_id];
+
+        uint256 _amount = accrueTokenFees(
+            refundParams.integrator,
+            integratorToFeeInfo[refundParams.integrator],
+            refundParams.amount,
+            0,
+            refundParams.token
+        );
+
+        _sendToken(refundParams.token, _amount, refundParams.to, refundParams.nativeOut);
         processedTransactions[_id] = SwapStatus.Fallback;
     }
 
@@ -295,7 +286,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         nativeWrap = _nativeWrap;
     }
 
-    function setMessageBus(address _messageBus) public onlyManagerOrAdmin {
+    function setMessageBus(address _messageBus) external onlyManagerOrAdmin {
         messageBus = _messageBus;
         emit MessageBusUpdated(messageBus);
     }

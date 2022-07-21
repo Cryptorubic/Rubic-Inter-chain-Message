@@ -17,17 +17,18 @@ contract TransferSwapInch is TransferSwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable {
-        address srcInputToken = _srcSwap.path[0];
-        address srcOutputToken = _srcSwap.path[_srcSwap.path.length - 1];
+        uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, _srcSwap.path[0]);
 
-        uint256 _fee = _deriveFeeAndPerformChecksNative(
+        _swapAndSendMessageInch(
+            _receiver,
             _amountIn,
             _dstChainId,
-            _dstSwap.integrator,
-            srcInputToken
+            _srcSwap,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _fee,
+            _srcSwap.path[_srcSwap.path.length - 1]
         );
-
-        _swapAndSendMessageInch(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
     }
 
     function transferWithSwapInch(
@@ -38,17 +39,18 @@ contract TransferSwapInch is TransferSwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable onlyEOA whenNotPaused {
-        address srcInputToken = _srcSwap.path[0];
-        address srcOutputToken = _srcSwap.path[_srcSwap.path.length - 1];
+        uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, _srcSwap.path[0]);
 
-        uint256 _fee = _deriveFeeAndPerformChecks(
+        _swapAndSendMessageInch(
+            _receiver,
             _amountIn,
             _dstChainId,
-            _dstSwap.integrator,
-            srcInputToken
+            _srcSwap,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _fee,
+            _srcSwap.path[_srcSwap.path.length - 1]
         );
-
-        _swapAndSendMessageInch(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
     }
 
     /**
@@ -73,12 +75,10 @@ contract TransferSwapInch is TransferSwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage,
         uint256 _fee,
-        /// Different
-        address srcInputToken,
         address srcOutputToken
     ) private {
         BaseCrossChainParams memory _baseParams = BaseCrossChainParams(
-            srcInputToken,
+            _srcSwap.path[0],
             _amountIn,
             _dstChainId,
             _retrieveDstTokenAddress(_dstSwap),
@@ -108,10 +108,7 @@ contract TransferSwapInch is TransferSwapBase {
             success
         );
 
-        emit CrossChainRequestSent(
-            id,
-            _baseParams
-        );
+        emit CrossChainRequestSent(id, _baseParams);
     }
 
     function _trySwapInch(SwapInfoInch memory _swap, uint256 _amount) internal returns (bool ok, uint256 amountOut) {

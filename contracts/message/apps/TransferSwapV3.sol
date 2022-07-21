@@ -17,16 +17,21 @@ contract TransferSwapV3 is TransferSwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable onlyEOA whenNotPaused {
-        (address srcInputToken, address srcOutputToken) = getInputAndOutputTokenAddresses(_srcSwap.path);
+        (address srcInputToken, address srcOutputToken) = getInputAndOutputTokenAddresses(_srcSwap.path); // TODO smells shit
 
-        uint256 _fee = _deriveFeeAndPerformChecksNative(
+        uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, srcInputToken);
+
+        _swapAndSendMessageV3(
+            _receiver,
             _amountIn,
             _dstChainId,
-            _dstSwap.integrator,
-            srcInputToken
+            _srcSwap,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _fee,
+            srcInputToken,
+            srcOutputToken
         );
-
-        _swapAndSendMessageV3(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
     }
 
     function transferWithSwapV3(
@@ -39,14 +44,19 @@ contract TransferSwapV3 is TransferSwapBase {
     ) external payable onlyEOA whenNotPaused {
         (address srcInputToken, address srcOutputToken) = getInputAndOutputTokenAddresses(_srcSwap.path);
 
-        uint256 _fee = _deriveFeeAndPerformChecks(
+        uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, srcInputToken);
+
+        _swapAndSendMessageV3(
+            _receiver,
             _amountIn,
             _dstChainId,
-            _dstSwap.integrator,
-            srcInputToken
+            _srcSwap,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _fee,
+            srcInputToken,
+            srcOutputToken
         );
-
-        _swapAndSendMessageV3(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
     }
 
     /**
@@ -106,10 +116,7 @@ contract TransferSwapV3 is TransferSwapBase {
             success
         );
 
-        emit CrossChainRequestSent(
-            id,
-            _baseParams
-        );
+        emit CrossChainRequestSent(id, _baseParams);
     }
 
     function _trySwapV3(SwapInfoV3 memory _swap, uint256 _amount) internal returns (bool ok, uint256 amountOut) {
@@ -134,7 +141,11 @@ contract TransferSwapV3 is TransferSwapBase {
         }
     }
 
-    function getInputAndOutputTokenAddresses(bytes memory _path) private pure returns(address inputToken, address outputToken) {
+    function getInputAndOutputTokenAddresses(bytes memory _path)
+        private
+        pure
+        returns (address inputToken, address outputToken)
+    {
         inputToken = address(_getFirstBytes20(_path));
         outputToken = address(_getLastBytes20(_path));
     }

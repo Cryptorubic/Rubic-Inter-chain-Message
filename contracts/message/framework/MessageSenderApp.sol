@@ -27,7 +27,7 @@ abstract contract MessageSenderApp is MessageBusAddress {
      *        Only applicable to the {MsgDataTypes.BridgeSendType.Liquidity}.
      * @param _message Arbitrary message bytes to be decoded by the destination app contract.
      *        If message is empty, only the token transfer will be sent
-     * @param _bridgeSendType One of the {BridgeSendType} enum.
+     * param _bridgeSendType One of the {BridgeSendType} enum.
      * @param _fee The fee amount to pay to MessageBus.
      * @return The transfer ID.
      */
@@ -39,7 +39,7 @@ abstract contract MessageSenderApp is MessageBusAddress {
         uint64 _nonce,
         uint32 _maxSlippage,
         bytes memory _message,
-        MsgDataTypes.BridgeSendType _bridgeSendType,
+        //MsgDataTypes.BridgeSendType _bridgeSendType,
         uint256 _fee
     ) internal returns (bytes32) {
         return
@@ -51,7 +51,7 @@ abstract contract MessageSenderApp is MessageBusAddress {
                 _nonce,
                 _maxSlippage,
                 _message,
-                _bridgeSendType,
+                //_bridgeSendType,
                 messageBus,
                 _fee
             );

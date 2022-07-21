@@ -27,7 +27,7 @@ library MessageSenderLib {
      *        Only applicable to the {MsgDataTypes.BridgeSendType.Liquidity}.
      * @param _message Arbitrary message bytes to be decoded by the destination app contract.
      *        If message is empty, only the token transfer will be sent
-     * @param _bridgeSendType One of the {MsgDataTypes.BridgeSendType} enum.
+     * param _bridgeSendType One of the {MsgDataTypes.BridgeSendType} enum.
      * @param _messageBus The address of the MessageBus on this chain.
      * @param _fee The fee amount to pay to MessageBus.
      * @return The transfer ID.
@@ -40,24 +40,22 @@ library MessageSenderLib {
         uint64 _nonce,
         uint32 _maxSlippage,
         bytes memory _message,
-        MsgDataTypes.BridgeSendType _bridgeSendType,
+        // MsgDataTypes.BridgeSendType _bridgeSendType,
         address _messageBus,
         uint256 _fee
     ) internal returns (bytes32) {
-        if (_bridgeSendType == MsgDataTypes.BridgeSendType.Liquidity) { // TODO remove if check?
-            return
-                sendMessageWithLiquidityBridgeTransfer(
-                    _receiver,
-                    _token,
-                    _amount,
-                    _dstChainId,
-                    _nonce,
-                    _maxSlippage,
-                    _message,
-                    _messageBus,
-                    _fee
-                );
-        }
+        return
+            sendMessageWithLiquidityBridgeTransfer(
+                _receiver,
+                _token,
+                _amount,
+                _dstChainId,
+                _nonce,
+                _maxSlippage,
+                _message,
+                _messageBus,
+                _fee
+            );
     }
 
     /**

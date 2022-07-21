@@ -15,22 +15,9 @@ contract BridgeSwap is TransferSwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable onlyEOA whenNotPaused {
-        uint256 _fee = _deriveFeeAndPerformChecksNative(
-            _amountIn,
-            _dstChainId,
-            _dstSwap.integrator,
-            _srcBridgeToken
-        );
+        uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, _srcBridgeToken);
 
-        _sendBridgeMessage(
-            _receiver,
-            _dstChainId,
-            _srcBridgeToken,
-            _dstSwap,
-            _maxBridgeSlippage,
-            _fee,
-            _amountIn
-        );
+        _sendBridgeMessage(_receiver, _dstChainId, _srcBridgeToken, _dstSwap, _maxBridgeSlippage, _fee, _amountIn);
     }
 
     function bridgeWithSwap(
@@ -41,22 +28,9 @@ contract BridgeSwap is TransferSwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable onlyEOA whenNotPaused {
-        uint256 _fee = _deriveFeeAndPerformChecks(
-            _amountIn,
-            _dstChainId,
-            _dstSwap.integrator,
-            _srcBridgeToken
-        );
+        uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, _srcBridgeToken);
 
-        _sendBridgeMessage(
-            _receiver,
-            _dstChainId,
-            _srcBridgeToken,
-            _dstSwap,
-            _maxBridgeSlippage,
-            _fee,
-            _amountIn
-        );
+        _sendBridgeMessage(_receiver, _dstChainId, _srcBridgeToken, _dstSwap, _maxBridgeSlippage, _fee, _amountIn);
     }
 
     function _sendBridgeMessage(
@@ -87,7 +61,7 @@ contract BridgeSwap is TransferSwapBase {
         bytes32 id = _sendMessage(
             _receiver,
             _chainId,
-             uint64(_baseParams.dstChainID),
+            uint64(_baseParams.dstChainID),
             _dstSwap,
             _maxBridgeSlippage,
             _nonce,
@@ -97,9 +71,6 @@ contract BridgeSwap is TransferSwapBase {
             true
         );
 
-        emit CrossChainRequestSent(
-            id,
-            _baseParams
-        );
+        emit CrossChainRequestSent(id, _baseParams);
     }
 }

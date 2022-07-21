@@ -17,17 +17,18 @@ contract TransferSwapV2 is TransferSwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable {
-        address srcInputToken = _srcSwap.path[0];
-        address srcOutputToken = _srcSwap.path[_srcSwap.path.length - 1];
+        uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, _srcSwap.path[0]);
 
-        uint256 _fee = _deriveFeeAndPerformChecksNative(
+        _swapAndSendMessageV2(
+            _receiver,
             _amountIn,
             _dstChainId,
-            _dstSwap.integrator,
-            srcInputToken
+            _srcSwap,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _fee,
+            _srcSwap.path[_srcSwap.path.length - 1]
         );
-
-        _swapAndSendMessageV2(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
     }
 
     function transferWithSwapV2(
@@ -38,17 +39,18 @@ contract TransferSwapV2 is TransferSwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable {
-        address srcInputToken = _srcSwap.path[0];
-        address srcOutputToken = _srcSwap.path[_srcSwap.path.length - 1];
+        uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, _srcSwap.path[0]);
 
-        uint256 _fee = _deriveFeeAndPerformChecks(
+        _swapAndSendMessageV2(
+            _receiver,
             _amountIn,
             _dstChainId,
-            _dstSwap.integrator,
-            srcInputToken
+            _srcSwap,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _fee,
+            _srcSwap.path[_srcSwap.path.length - 1]
         );
-
-        _swapAndSendMessageV2(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee, srcInputToken, srcOutputToken);
     }
 
     /**
@@ -73,12 +75,11 @@ contract TransferSwapV2 is TransferSwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage,
         uint256 _fee,
-        /// Different
-        address srcInputToken,
-        address srcOutputToken
+        address _outputToken
     ) private {
+        // TODO stack to deep here, to avoid stack too deep output token
         BaseCrossChainParams memory _baseParams = BaseCrossChainParams(
-            srcInputToken,
+            _srcSwap.path[0],
             _amountIn,
             _dstChainId,
             _retrieveDstTokenAddress(_dstSwap),
@@ -89,7 +90,7 @@ contract TransferSwapV2 is TransferSwapBase {
         );
 
         uint64 _chainId = uint64(block.chainid);
-        uint64 _nonce = _beforeSwapAndSendMessage();
+        //uint64 _nonce = _beforeSwapAndSendMessage();
 
         require(_srcSwap.path.length > 1 && _baseParams.dstChainID != _chainId, 'empty swap or same chainIDs');
 
@@ -101,17 +102,14 @@ contract TransferSwapV2 is TransferSwapBase {
             uint64(_baseParams.dstChainID),
             _dstSwap,
             _maxBridgeSlippage,
-            _nonce,
+            _beforeSwapAndSendMessage(), // TODO or uint256 nonce is better #93?
             _fee,
-            srcOutputToken,
+            _outputToken,
             srcAmtOut,
             success
         );
 
-        emit CrossChainRequestSent(
-            id,
-            _baseParams
-        );
+        emit CrossChainRequestSent(id, _baseParams);
     }
 
     function _trySwapV2(SwapInfoV2 memory _swap, uint256 _amount) internal returns (bool ok, uint256 amountOut) {

@@ -13,23 +13,24 @@ contract TransferSwapBase is SwapBase {
         uint256 _amountIn,
         uint64 _dstChainId,
         address _integrator,
-        /// Different
-        address srcInputToken //TODO: possible to remove this parameter at all?
-    ) internal onlyEOA whenNotPaused returns(uint256 _fee){
+        address srcInputToken //TODO: possible to remove this parameter at all? - in this func not possible
+    ) internal onlyEOA whenNotPaused returns (uint256 _fee) {
         require(srcInputToken == nativeWrap, 'token mismatch');
-        require(msg.value >= _amountIn, 'Amount insufficient');
+        require(msg.value >= _amountIn, 'amount insufficient');
         IWETH(nativeWrap).deposit{value: _amountIn}();
 
-        _fee = msg.value - _amountIn - accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
+        _fee =
+            msg.value -
+            _amountIn -
+            accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
     }
 
     function _deriveFeeAndPerformChecks(
         uint256 _amountIn,
         uint64 _dstChainId,
         address _integrator,
-        /// Different
         address srcInputToken
-    ) internal onlyEOA whenNotPaused returns(uint256 _fee){
+    ) internal onlyEOA whenNotPaused returns (uint256 _fee) {
         IERC20Upgradeable(srcInputToken).safeTransferFrom(msg.sender, address(this), _amountIn);
 
         _fee = msg.value - accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
@@ -39,7 +40,7 @@ contract TransferSwapBase is SwapBase {
         return ++nonce;
     }
 
-    function _retrieveDstTokenAddress(SwapInfoDest memory _swapInfo) internal pure returns(address) {
+    function _retrieveDstTokenAddress(SwapInfoDest memory _swapInfo) internal pure returns (address) {
         if (_swapInfo.version == SwapVersion.v3) {
             require(_swapInfo.pathV3.length > 20, 'dst swap expected');
 
@@ -47,9 +48,9 @@ contract TransferSwapBase is SwapBase {
         } else if (_swapInfo.version == SwapVersion.v2) {
             require(_swapInfo.path.length > 1, 'dst swap expected');
 
-            return _swapInfo.path[_swapInfo.path.length -1];
+            return _swapInfo.path[_swapInfo.path.length - 1];
         } else {
-            return _swapInfo.path[_swapInfo.path.length -1];
+            return _swapInfo.path[_swapInfo.path.length - 1];
         }
     }
 
@@ -64,11 +65,13 @@ contract TransferSwapBase is SwapBase {
         address _srcOutputToken,
         uint256 _srcAmtOut,
         bool _success
-    ) internal returns(bytes32 id){
+    ) internal returns (bytes32 id) {
         if (!_success) revert('src swap failed');
 
         require(_srcAmtOut >= minTokenAmount[_srcOutputToken], 'less than min');
-        require(_srcAmtOut <= maxTokenAmount[_srcOutputToken], 'greater than max'); //TODO: check for zero
+        if (maxTokenAmount[_srcOutputToken] > 0) {
+            require(_srcAmtOut <= maxTokenAmount[_srcOutputToken], 'greater than max');
+        }
 
         id = _crossChainTransferWithSwap(
             _receiver,
@@ -93,12 +96,12 @@ contract TransferSwapBase is SwapBase {
         uint256 _fee,
         address srcOutputToken,
         uint256 srcAmtOut
-    ) private returns(bytes32 id) {
+    ) private returns (bytes32 id) {
         require(_dstSwap.path.length > 0, 'empty dst swap path');
         bytes memory message = abi.encode(
             SwapRequestDest({swap: _dstSwap, receiver: msg.sender, nonce: nonce, dstChainId: _dstChainId}) // todo recipient
         );
-        id = _computeSwapRequestId(msg.sender, _chainId, _dstChainId, message);
+        id = _computeSwapRequestId(msg.sender, _chainId, _dstChainId, message); // todo recipient
 
         sendMessageWithTransfer(
             _receiver,
@@ -108,7 +111,7 @@ contract TransferSwapBase is SwapBase {
             _nonce,
             _maxBridgeSlippage,
             message,
-            MsgDataTypes.BridgeSendType.Liquidity,
+            //MsgDataTypes.BridgeSendType.Liquidity,
             _fee
         );
     }
