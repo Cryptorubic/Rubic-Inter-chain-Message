@@ -11,10 +11,10 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-    event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status);
+    event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status); // TODO add params
 
     /// @dev This modifier prevents using executor functions
-    modifier onlyExecutor(address _executor) {
+    modifier onlyExecutor(address _executor) { // TODO remove to relayer
         require(hasRole(EXECUTOR_ROLE, _executor), 'SwapBase: caller not an executor');
         _;
     }
@@ -123,7 +123,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
     function _afterTargetProcessing(bytes32 _id, uint256 _amount, SwapStatus _status) private {
         processedTransactions[_id] = _status;
-        emit SwapRequestDone(_id, _amount, _status);
+        emit SwapRequestDone(_id, _params, _status); // TODO blockchain parapms struct
     }
 
     /**
@@ -273,7 +273,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     function sweepTokens(
         address _token,
         uint256 _amount
-    ) external onlyManagerOrAdmin {
+    ) external onlyManagerOrAdmin { // TODO only admin
         sendToken(_token, _amount, msg.sender);
     }
 
@@ -283,7 +283,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         uint256 _amount,
         address _to,
         bool _nativeOut
-    ) external nonReentrant onlyManagerOrAdmin {
+    ) external nonReentrant onlyManagerOrAdmin { // TODO amount from id + fee
         SwapStatus _status = processedTransactions[_id];
         require(_status != SwapStatus.Succeeded && _status != SwapStatus.Fallback);
 

@@ -11,7 +11,7 @@ import '../../interfaces/IWETH.sol';
 contract SwapBase is MessageSenderApp, MessageReceiverApp, WithDestinationFunctionality {
     using SafeERC20 for IERC20;
 
-    bytes32 public constant EXECUTOR_ROLE = keccak256('EXECUTOR_ROLE');
+    bytes32 public constant EXECUTOR_ROLE = keccak256('EXECUTOR_ROLE'); // todo remove
 
     address public nativeWrap;
     uint64 public nonce;
