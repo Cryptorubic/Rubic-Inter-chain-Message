@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.8.9;
 
@@ -7,8 +7,12 @@ import './MessageBusAddress.sol';
 
 abstract contract MessageReceiverApp is IMessageReceiverApp, MessageBusAddress {
     modifier onlyMessageBus() {
-        require(msg.sender == messageBus, 'caller is not message bus');
+        checkIsMessageBus();
         _;
+    }
+
+    function checkIsMessageBus() internal view {
+        require(msg.sender == messageBus, 'caller is not message bus');
     }
 
     /**

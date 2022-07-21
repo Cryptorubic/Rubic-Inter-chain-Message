@@ -96,9 +96,9 @@ contract BridgeSwap is TransferSwapBase {
             true
         );
 
-        emit CrossChainRequestSent(
-            id,
-            _baseParams
-        );
+//        emit CrossChainRequestSent(
+//            id,
+//            _baseParams
+//        );
     }
 }

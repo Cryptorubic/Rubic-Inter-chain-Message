@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: MIT
 
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.9;
 
 import 'rubic-bridge-base/contracts/libraries/SmartApprove.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
@@ -48,7 +48,7 @@ library MessageSenderLib {
         address _messageBus,
         uint256 _fee
     ) internal returns (bytes32) {
-        if (_bridgeSendType == MsgDataTypes.BridgeSendType.Liquidity) {
+        if (_bridgeSendType == MsgDataTypes.BridgeSendType.Liquidity) { // TODO remove if check?
             return
                 sendMessageWithLiquidityBridgeTransfer(
                     _receiver,
@@ -61,8 +61,6 @@ library MessageSenderLib {
                     _messageBus,
                     _fee
                 );
-        } else {
-            revert('bridge type not supported');
         }
     }
 
@@ -95,7 +93,6 @@ library MessageSenderLib {
     ) internal returns (bytes32) {
         address bridge = IMessageBus(_messageBus).liquidityBridge();
         SmartApprove.smartApprove(_token, _amount, bridge);
-        // IERC20(_token).safeIncreaseAllowance(bridge, _amount); // TODO gas diff?
         IBridge(bridge).send(_receiver, _token, _amount, _dstChainId, _nonce, _maxSlippage);
         bytes32 transferId = keccak256(
             abi.encodePacked(address(this), _receiver, _token, _amount, _dstChainId, _nonce, uint64(block.chainid))

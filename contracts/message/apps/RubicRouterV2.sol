@@ -77,7 +77,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
      * @param _token the address of the token sent through the bridge
      * @param _amount the amount of tokens received at this contract through the cross-chain bridge
      * @param _srcChainId source chain ID
-     * @param _message SwapRequestV2 message that defines the swap behavior on this destination chain
+     * @param _message SwapRequestDst message that defines the swap behavior on this destination chain
      */
     function executeMessageWithTransfer(
         address,
