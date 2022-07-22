@@ -3,9 +3,12 @@
 pragma solidity >=0.8.9;
 
 import '../../interfaces/IMessageReceiverApp.sol';
-import './MessageBusAddress.sol';
 
-abstract contract MessageReceiverApp is IMessageReceiverApp, MessageBusAddress {
+abstract contract MessageReceiverApp is IMessageReceiverApp {
+
+    address public messageBus;
+    event MessageBusUpdated(address messageBus);
+
     modifier onlyMessageBus() {
         checkIsMessageBus();
         _;

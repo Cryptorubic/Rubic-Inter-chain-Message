@@ -2,15 +2,12 @@
 
 pragma solidity >=0.8.9;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-
 import '../libraries/MsgDataTypes.sol';
 import '../libraries/MessageSenderLib.sol';
-import './MessageBusAddress.sol';
 
-abstract contract MessageSenderApp is MessageBusAddress {
-    using SafeERC20 for IERC20;
+import './MessageReceiverApp.sol';
+
+abstract contract MessageSenderApp is MessageReceiverApp {
 
     // ============== Utility functions called by apps ==============
 
@@ -39,7 +36,6 @@ abstract contract MessageSenderApp is MessageBusAddress {
         uint64 _nonce,
         uint32 _maxSlippage,
         bytes memory _message,
-        //MsgDataTypes.BridgeSendType _bridgeSendType,
         uint256 _fee
     ) internal returns (bytes32) {
         return
@@ -51,7 +47,6 @@ abstract contract MessageSenderApp is MessageBusAddress {
                 _nonce,
                 _maxSlippage,
                 _message,
-                //_bridgeSendType,
                 messageBus,
                 _fee
             );

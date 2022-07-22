@@ -8,10 +8,10 @@ import '../framework/MessageSenderApp.sol';
 import '../framework/MessageReceiverApp.sol';
 import '../../interfaces/IWETH.sol';
 
-contract SwapBase is MessageSenderApp, MessageReceiverApp, WithDestinationFunctionality {
-    using SafeERC20 for IERC20;
+contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
 
     address public nativeWrap;
+//    address public messageBus;
     uint64 public nonce;
 
     mapping(bytes32 => RefundData) public refundDetails;
@@ -123,7 +123,7 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp, WithDestinationFuncti
     /**
      * @dev Function to check if the address in path is transit token received from Celer
      */
-    function checkIsTransit(address _transitToken, address _tokenInPath) internal view {
+    function checkIsTransit(address _transitToken, address _tokenInPath) internal pure {
         require(_transitToken == _tokenInPath, 'first token must be transit');
     }
 }

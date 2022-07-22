@@ -2,7 +2,7 @@
 
 pragma solidity >=0.8.9;
 
-library MsgDataTypes { // TODO USELESS LIB?
+library MsgDataTypes {
     // bridge operation type at the sender side (src chain)
     enum BridgeSendType {
         Null,

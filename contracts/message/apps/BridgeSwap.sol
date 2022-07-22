@@ -5,7 +5,6 @@ pragma solidity >=0.8.9;
 import './TransferSwapBase.sol';
 
 contract BridgeSwap is TransferSwapBase {
-    using SafeERC20 for IERC20;
 
     function bridgeWithSwapNative(
         address _receiver,

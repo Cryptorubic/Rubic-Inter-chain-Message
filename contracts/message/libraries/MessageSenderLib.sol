@@ -3,14 +3,13 @@
 pragma solidity >=0.8.9;
 
 import 'rubic-bridge-base/contracts/libraries/SmartApprove.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+
 import '../../interfaces/IBridge.sol';
 import '../../interfaces/IMessageBus.sol';
+
 import './MsgDataTypes.sol';
 
 library MessageSenderLib {
-    using SafeERC20 for IERC20;
 
     // ============== Internal library functions called by apps ==============
 
@@ -40,7 +39,6 @@ library MessageSenderLib {
         uint64 _nonce,
         uint32 _maxSlippage,
         bytes memory _message,
-        // MsgDataTypes.BridgeSendType _bridgeSendType,
         address _messageBus,
         uint256 _fee
     ) internal returns (bytes32) {

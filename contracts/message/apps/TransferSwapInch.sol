@@ -5,6 +5,7 @@ pragma solidity >=0.8.9;
 import './TransferSwapBase.sol';
 
 contract TransferSwapInch is TransferSwapBase {
+
     using AddressUpgradeable for address payable;
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
@@ -120,7 +121,7 @@ contract TransferSwapInch is TransferSwapBase {
         IERC20Upgradeable Transit = IERC20Upgradeable(_swap.path[_swap.path.length - 1]);
         uint256 transitBalanceBefore = Transit.balanceOf(address(this));
 
-        Address.functionCall(_swap.dex, _swap.data);
+        AddressUpgradeable.functionCall(_swap.dex, _swap.data);
 
         uint256 balanceDif = Transit.balanceOf(address(this)) - transitBalanceBefore;
 
