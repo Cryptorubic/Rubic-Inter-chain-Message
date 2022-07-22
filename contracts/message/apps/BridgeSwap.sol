@@ -2,9 +2,9 @@
 
 pragma solidity >=0.8.9;
 
-import './TransferSwapBase.sol';
+import './SwapBase.sol';
 
-contract BridgeSwap is TransferSwapBase {
+contract BridgeSwap is SwapBase {
 
     function bridgeWithSwapNative(
         address _receiver,
@@ -52,18 +52,14 @@ contract BridgeSwap is TransferSwapBase {
             address(0)
         );
 
-        uint64 _chainId = uint64(block.chainid);
-        uint64 _nonce = _beforeSwapAndSendMessage();
-
-        require(_baseParams.dstChainID != _chainId, 'same chain id');
+        require(_baseParams.dstChainID != uint64(block.chainid), 'same chain id');
 
         bytes32 id = _sendMessage(
             _receiver,
-            _chainId,
             uint64(_baseParams.dstChainID),
             _dstSwap,
             _maxBridgeSlippage,
-            _nonce,
+            _beforeSwapAndSendMessage(),
             _fee,
             _baseParams.srcInputToken,
             _baseParams.srcInputAmount,

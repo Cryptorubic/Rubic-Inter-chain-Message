@@ -4,14 +4,16 @@ pragma solidity >=0.8.9;
 
 import 'rubic-bridge-base/contracts/architecture/WithDestinationFunctionality.sol';
 
+import 'rubic-bridge-base/contracts/libraries/SmartApprove.sol';
+
 import '../framework/MessageSenderApp.sol';
-import '../framework/MessageReceiverApp.sol';
 import '../../interfaces/IWETH.sol';
 
 contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     address public nativeWrap;
-//    address public messageBus;
     uint64 public nonce;
 
     mapping(bytes32 => RefundData) public refundDetails;
@@ -88,6 +90,123 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         bridge
     }
 
+    // ============== fee logic ==============
+
+    function _calculateCryptoFee(uint256 _fee, uint64 _dstChainId) internal view returns (uint256 updatedFee) {
+        require(_fee >= blockchainToGasFee[_dstChainId], 'too few crypto fee');
+        uint256 _updatedFee = _fee - blockchainToGasFee[_dstChainId];
+        return (_updatedFee);
+    }
+
+    // ============== common checks for src swaps ==============
+
+    function _deriveFeeAndPerformChecksNative(
+        uint256 _amountIn,
+        uint64 _dstChainId,
+        address _integrator,
+        address srcInputToken
+    ) internal onlyEOA whenNotPaused returns (uint256 _fee) {
+        require(srcInputToken == nativeWrap, 'token mismatch');
+        require(msg.value >= _amountIn, 'amount insufficient');
+        IWETH(nativeWrap).deposit{value: _amountIn}();
+
+        _fee =
+            msg.value -
+            _amountIn -
+            accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
+    }
+
+    function _deriveFeeAndPerformChecks(
+        uint256 _amountIn,
+        uint64 _dstChainId,
+        address _integrator,
+        address srcInputToken
+    ) internal onlyEOA whenNotPaused returns (uint256 _fee) {
+        IERC20Upgradeable(srcInputToken).safeTransferFrom(msg.sender, address(this), _amountIn);
+
+        _fee = msg.value - accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
+    }
+
+    // ============== Celer call ==============
+
+    function _sendMessage(
+        address _receiver,
+        uint64 _dstChainId,
+        SwapInfoDest calldata _dstSwap,
+        uint32 _maxBridgeSlippage,
+        uint64 _nonce,
+        uint256 _fee,
+        address _srcOutputToken,
+        uint256 _srcAmtOut,
+        bool _success
+    ) internal returns (bytes32 id) {
+        if (!_success) revert('src swap failed');
+
+        require(_srcAmtOut >= minTokenAmount[_srcOutputToken], 'less than min');
+        if (maxTokenAmount[_srcOutputToken] > 0) {
+            require(_srcAmtOut <= maxTokenAmount[_srcOutputToken], 'greater than max');
+        }
+
+        id = _crossChainTransferWithSwap(
+            _receiver,
+            _dstChainId,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _nonce,
+            _fee,
+            _srcOutputToken,
+            _srcAmtOut
+        );
+    }
+
+    function _crossChainTransferWithSwap(
+        address _receiver,
+        uint64 _dstChainId,
+        SwapInfoDest calldata _dstSwap,
+        uint32 _maxBridgeSlippage,
+        uint64 _nonce,
+        uint256 _fee,
+        address srcOutputToken,
+        uint256 srcAmtOut
+    ) private returns (bytes32 id) {
+        require(_dstSwap.path.length > 0, 'empty dst swap path');
+        bytes memory message = abi.encode(
+            SwapRequestDest({swap: _dstSwap, receiver: msg.sender, nonce: nonce, dstChainId: _dstChainId}) // todo recipient
+        );
+        id = _computeSwapRequestId(msg.sender, uint64(block.chainid), _dstChainId, message); // todo recipient
+
+        sendMessageWithTransfer(
+            _receiver,
+            srcOutputToken,
+            srcAmtOut,
+            _dstChainId,
+            _nonce,
+            _maxBridgeSlippage,
+            message,
+            _fee
+        );
+    }
+
+    // ============== Utilities ==============
+
+    function _beforeSwapAndSendMessage() internal returns (uint64) {
+        return ++nonce;
+    }
+
+    function _retrieveDstTokenAddress(SwapInfoDest memory _swapInfo) internal pure returns (address) {
+        if (_swapInfo.version == SwapVersion.v3) {
+            require(_swapInfo.pathV3.length > 20, 'dst swap expected');
+
+            return address(_getLastBytes20(_swapInfo.pathV3));
+        } else if (_swapInfo.version == SwapVersion.v2) {
+            require(_swapInfo.path.length > 1, 'dst swap expected');
+
+            return _swapInfo.path[_swapInfo.path.length - 1];
+        } else {
+            return _swapInfo.path[_swapInfo.path.length - 1];
+        }
+    }
+
     // returns address of first token for V3
     function _getFirstBytes20(bytes memory input) internal pure returns (bytes20 result) {
         assembly {
@@ -110,14 +229,6 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         bytes memory _message
     ) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(_sender, _srcChainId, _dstChainId, _message));
-    }
-
-    // ============== fee logic ==============
-
-    function _calculateCryptoFee(uint256 _fee, uint64 _dstChainId) internal view returns (uint256 updatedFee) {
-        require(_fee >= blockchainToGasFee[_dstChainId], 'too few crypto fee');
-        uint256 _updatedFee = _fee - blockchainToGasFee[_dstChainId];
-        return (_updatedFee);
     }
 
     /**

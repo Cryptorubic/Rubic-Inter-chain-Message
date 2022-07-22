@@ -2,10 +2,10 @@
 
 pragma solidity >=0.8.9;
 
-import './TransferSwapBase.sol';
+import './SwapBase.sol';
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 
-contract TransferSwapV2 is TransferSwapBase {
+contract TransferSwapV2 is SwapBase {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
@@ -88,15 +88,12 @@ contract TransferSwapV2 is TransferSwapBase {
             _srcSwap.dex
         );
 
-        uint64 _chainId = uint64(block.chainid);
-
-        require(_srcSwap.path.length > 1 && _baseParams.dstChainID != _chainId, 'empty swap or same chainIDs');
+        require(_srcSwap.path.length > 1, 'empty swap path');
 
         (bool success, uint256 srcAmtOut) = _trySwapV2(_srcSwap, _amountIn);
 
         bytes32 id = _sendMessage(
             _receiver,
-            _chainId,
             uint64(_baseParams.dstChainID),
             _dstSwap,
             _maxBridgeSlippage,
