@@ -11,17 +11,19 @@ import '../../interfaces/IWETH.sol';
 contract SwapBase is MessageSenderApp, MessageReceiverApp, WithDestinationFunctionality {
     using SafeERC20 for IERC20;
 
-    bytes32 public constant EXECUTOR_ROLE = keccak256('EXECUTOR_ROLE'); // todo remove
-
     address public nativeWrap;
     uint64 public nonce;
 
-    mapping(bytes32 => RefundData) public refundDetails; // TODO to WDF
+    mapping(bytes32 => RefundData) public refundDetails;
+
+    modifier isTransit(address _transitToken, address _tokenInPath) {
+        checkIsTransit(_transitToken, _tokenInPath);
+        _;
+    }
 
     // ============== struct for refunds ==============
 
     struct RefundData {
-        // TODO to WDF
         address integrator; // integrator address in order to take commission
         address token; // transit token
         uint256 amount; // amount of transit token
@@ -116,5 +118,12 @@ contract SwapBase is MessageSenderApp, MessageReceiverApp, WithDestinationFuncti
         require(_fee >= blockchainToGasFee[_dstChainId], 'too few crypto fee');
         uint256 _updatedFee = _fee - blockchainToGasFee[_dstChainId];
         return (_updatedFee);
+    }
+
+    /**
+     * @dev Function to check if the address in path is transit token received from Celer
+     */
+    function checkIsTransit(address _transitToken, address _tokenInPath) internal view {
+        require(_transitToken == _tokenInPath, 'first token must be transit');
     }
 }

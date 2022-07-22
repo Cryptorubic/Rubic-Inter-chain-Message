@@ -11,14 +11,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-    event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status); // TODO add params
-
-    /// @dev This modifier prevents using executor functions
-    modifier onlyExecutor(address _executor) {
-        // TODO remove to relayer
-        require(hasRole(EXECUTOR_ROLE, _executor), 'SwapBase: caller not an executor');
-        _;
-    }
+    event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status);
 
     constructor(
         uint256 _fixedCryptoFee,
@@ -86,7 +79,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         uint256 _amount,
         uint64 _srcChainId,
         bytes calldata _message,
-        address _executor
+        address _relayer
     )
         external
         payable
@@ -94,7 +87,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         onlyMessageBus
         nonReentrant
         whenNotPaused
-        onlyExecutor(_executor)
+        onlyRelayer(_relayer)
         returns (ExecutionStatus)
     {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
@@ -128,8 +121,8 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         uint256 _amount,
         uint64 _srcChainId,
         bytes calldata _message,
-        address _executor
-    ) external payable override onlyMessageBus nonReentrant onlyExecutor(_executor) returns (ExecutionStatus) {
+        address _relayer
+    ) external payable override onlyMessageBus nonReentrant onlyRelayer(_relayer) returns (ExecutionStatus) {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
 
         bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
@@ -149,7 +142,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         address _token,
         uint256 _amount,
         bytes calldata _message,
-        address _executor
+        address _relayer
     )
         external
         payable
@@ -157,7 +150,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         onlyMessageBus
         nonReentrant
         whenNotPaused
-        onlyExecutor(_executor)
+        onlyRelayer(_relayer)
         returns (ExecutionStatus)
     {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
@@ -189,9 +182,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         uint256 _amount,
         bytes32 _id,
         SwapRequestDest memory _msgDst
-    ) private {
-        require(_inputToken == _msgDst.swap.path[0], 'first token must be transit'); // TODO modifier for _execute...
-
+    ) private isTransit(_inputToken, _msgDst.swap.path[0]) {
         SwapInfoV2 memory _dstSwap = SwapInfoV2({
             dex: _msgDst.swap.dex,
             path: _msgDst.swap.path,
@@ -216,10 +207,8 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         uint256 _amount,
         bytes32 _id,
         SwapRequestDest memory _msgDst
-    ) private {
-        require(_inputToken == address(_getFirstBytes20(_msgDst.swap.pathV3)), 'first token must be transit');
-
-        SwapInfoV3 memory _dstSwap = SwapInfoV3({
+    ) private isTransit(_inputToken, _msgDst.swap.path[0]) {
+       SwapInfoV3 memory _dstSwap = SwapInfoV3({
             dex: _msgDst.swap.dex,
             path: _msgDst.swap.pathV3,
             deadline: _msgDst.swap.deadline,
