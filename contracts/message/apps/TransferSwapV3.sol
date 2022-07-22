@@ -16,10 +16,8 @@ contract TransferSwapV3 is TransferSwapBase {
         SwapInfoV3 calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
-    ) external payable onlyEOA whenNotPaused {
-        (address srcInputToken, address srcOutputToken) = getInputAndOutputTokenAddresses(_srcSwap.path); // TODO smells shit
-
-        uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, srcInputToken);
+    ) external payable {
+        uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, address(_getFirstBytes20(_srcSwap.path)));
 
         _swapAndSendMessageV3(
             _receiver,
@@ -29,8 +27,7 @@ contract TransferSwapV3 is TransferSwapBase {
             _dstSwap,
             _maxBridgeSlippage,
             _fee,
-            srcInputToken,
-            srcOutputToken
+            address(_getLastBytes20(_srcSwap.path))
         );
     }
 
@@ -41,10 +38,8 @@ contract TransferSwapV3 is TransferSwapBase {
         SwapInfoV3 calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
-    ) external payable onlyEOA whenNotPaused {
-        (address srcInputToken, address srcOutputToken) = getInputAndOutputTokenAddresses(_srcSwap.path);
-
-        uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, srcInputToken);
+    ) external payable {
+        uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, address(_getFirstBytes20(_srcSwap.path)));
 
         _swapAndSendMessageV3(
             _receiver,
@@ -54,8 +49,7 @@ contract TransferSwapV3 is TransferSwapBase {
             _dstSwap,
             _maxBridgeSlippage,
             _fee,
-            srcInputToken,
-            srcOutputToken
+            address(_getLastBytes20(_srcSwap.path))
         );
     }
 
@@ -81,12 +75,10 @@ contract TransferSwapV3 is TransferSwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage,
         uint256 _fee,
-        /// Different
-        address srcInputToken,
         address srcOutputToken
     ) private {
         BaseCrossChainParams memory _baseParams = BaseCrossChainParams(
-            srcInputToken,
+            address(_getFirstBytes20(_srcSwap.path)),
             _amountIn,
             _dstChainId,
             _retrieveDstTokenAddress(_dstSwap),
@@ -97,7 +89,6 @@ contract TransferSwapV3 is TransferSwapBase {
         );
 
         uint64 _chainId = uint64(block.chainid);
-        uint64 _nonce = _beforeSwapAndSendMessage();
 
         require(_srcSwap.path.length > 20 && _baseParams.dstChainID != _chainId, 'empty swap or same chainIDs');
 
@@ -109,7 +100,7 @@ contract TransferSwapV3 is TransferSwapBase {
             uint64(_baseParams.dstChainID),
             _dstSwap,
             _maxBridgeSlippage,
-            _nonce,
+            _beforeSwapAndSendMessage(), // TODO rename
             _fee,
             srcOutputToken,
             srcAmtOut,
@@ -139,14 +130,5 @@ contract TransferSwapV3 is TransferSwapBase {
         } catch {
             return (false, 0);
         }
-    }
-
-    function getInputAndOutputTokenAddresses(bytes memory _path)
-        private
-        pure
-        returns (address inputToken, address outputToken)
-    {
-        inputToken = address(_getFirstBytes20(_path));
-        outputToken = address(_getLastBytes20(_path));
     }
 }

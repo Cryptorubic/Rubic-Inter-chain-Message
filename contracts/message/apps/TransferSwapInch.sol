@@ -38,7 +38,7 @@ contract TransferSwapInch is TransferSwapBase {
         SwapInfoInch calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
-    ) external payable onlyEOA whenNotPaused {
+    ) external payable {
         uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, _srcSwap.path[0]);
 
         _swapAndSendMessageInch(
@@ -89,7 +89,6 @@ contract TransferSwapInch is TransferSwapBase {
         );
 
         uint64 _chainId = uint64(block.chainid);
-        uint64 _nonce = _beforeSwapAndSendMessage();
 
         require(_srcSwap.path.length > 1 && _baseParams.dstChainID != _chainId, 'empty swap or same chainIDs');
 
@@ -101,7 +100,7 @@ contract TransferSwapInch is TransferSwapBase {
             uint64(_baseParams.dstChainID),
             _dstSwap,
             _maxBridgeSlippage,
-            _nonce,
+            _beforeSwapAndSendMessage(),
             _fee,
             srcOutputToken,
             srcAmtOut,

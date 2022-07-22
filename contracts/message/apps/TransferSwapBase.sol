@@ -13,7 +13,7 @@ contract TransferSwapBase is SwapBase {
         uint256 _amountIn,
         uint64 _dstChainId,
         address _integrator,
-        address srcInputToken //TODO: possible to remove this parameter at all?
+        address srcInputToken
     ) internal onlyEOA whenNotPaused returns (uint256 _fee) {
         require(srcInputToken == nativeWrap, 'token mismatch');
         require(msg.value >= _amountIn, 'amount insufficient');

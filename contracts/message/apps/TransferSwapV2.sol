@@ -77,7 +77,6 @@ contract TransferSwapV2 is TransferSwapBase {
         uint256 _fee,
         address _outputToken
     ) private {
-        // TODO stack to deep here, to avoid stack too deep output token
         BaseCrossChainParams memory _baseParams = BaseCrossChainParams(
             _srcSwap.path[0],
             _amountIn,
@@ -90,7 +89,6 @@ contract TransferSwapV2 is TransferSwapBase {
         );
 
         uint64 _chainId = uint64(block.chainid);
-        //uint64 _nonce = _beforeSwapAndSendMessage();
 
         require(_srcSwap.path.length > 1 && _baseParams.dstChainID != _chainId, 'empty swap or same chainIDs');
 
@@ -102,7 +100,7 @@ contract TransferSwapV2 is TransferSwapBase {
             uint64(_baseParams.dstChainID),
             _dstSwap,
             _maxBridgeSlippage,
-            _beforeSwapAndSendMessage(), // TODO or uint256 nonce is better #93?
+            _beforeSwapAndSendMessage(),
             _fee,
             _outputToken,
             srcAmtOut,

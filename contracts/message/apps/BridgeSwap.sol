@@ -14,7 +14,7 @@ contract BridgeSwap is TransferSwapBase {
         address _srcBridgeToken,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
-    ) external payable onlyEOA whenNotPaused {
+    ) external payable {
         uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, _srcBridgeToken);
 
         _sendBridgeMessage(_receiver, _dstChainId, _srcBridgeToken, _dstSwap, _maxBridgeSlippage, _fee, _amountIn);
@@ -27,7 +27,7 @@ contract BridgeSwap is TransferSwapBase {
         address _srcBridgeToken,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
-    ) external payable onlyEOA whenNotPaused {
+    ) external payable {
         uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, _srcBridgeToken);
 
         _sendBridgeMessage(_receiver, _dstChainId, _srcBridgeToken, _dstSwap, _maxBridgeSlippage, _fee, _amountIn);
