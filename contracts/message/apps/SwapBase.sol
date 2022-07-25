@@ -69,6 +69,7 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
     struct SwapInfoDest {
         address dex; // dex address
         bool nativeOut;
+        address receiverEOA; // EOA recipient in dst chain
         address integrator;
         SwapVersion version; // identifies swap type
         address[] path; // path address for v2 and inch
@@ -79,7 +80,6 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
 
     struct SwapRequestDest {
         SwapInfoDest swap;
-        address receiver; // EOA
         uint64 nonce;
         uint64 dstChainId;
     }
@@ -169,11 +169,12 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         address srcOutputToken,
         uint256 srcAmtOut
     ) private returns (bytes32 id) {
+        // todo increment nonce in compute ...
         require(_dstSwap.path.length > 0, 'empty dst swap path');
         bytes memory message = abi.encode(
-            SwapRequestDest({swap: _dstSwap, receiver: msg.sender, nonce: nonce, dstChainId: _dstChainId}) // todo recipient
+            SwapRequestDest({swap: _dstSwap, nonce: nonce, dstChainId: _dstChainId})
         );
-        id = _computeSwapRequestId(msg.sender, uint64(block.chainid), _dstChainId, message); // todo recipient
+        id = _computeSwapRequestId(_dstSwap.receiverEOA, uint64(block.chainid), _dstChainId, message);
 
         sendMessageWithTransfer(
             _receiver,
@@ -223,12 +224,12 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
     }
 
     function _computeSwapRequestId(
-        address _sender,
+        address _receiverEOA,
         uint64 _srcChainId,
         uint64 _dstChainId,
         bytes memory _message
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_sender, _srcChainId, _dstChainId, _message));
+        return keccak256(abi.encodePacked(_receiverEOA, _srcChainId, _dstChainId, _message));
     }
 
     /**

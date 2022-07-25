@@ -47,7 +47,7 @@ contract BridgeSwap is SwapBase {
             _dstChainId,
             _retrieveDstTokenAddress(_dstSwap),
             _dstSwap.amountOutMinimum,
-            msg.sender,
+            _dstSwap.receiverEOA,
             _dstSwap.integrator,
             address(0)
         );

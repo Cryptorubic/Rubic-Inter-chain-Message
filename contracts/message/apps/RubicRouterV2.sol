@@ -91,7 +91,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         returns (ExecutionStatus)
     {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
-        bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
+        bytes32 id = _computeSwapRequestId(m.swap.receiverEOA, _srcChainId, uint64(block.chainid), _message);
 
         _amount = accrueTokenFees(m.swap.integrator, integratorToFeeInfo[m.swap.integrator], _amount, 0, _token);
 
@@ -125,10 +125,10 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     ) external payable override onlyMessageBus nonReentrant onlyRelayer(_relayer) returns (ExecutionStatus) {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
 
-        bytes32 id = _computeSwapRequestId(m.receiver, _srcChainId, uint64(block.chainid), _message);
+        bytes32 id = _computeSwapRequestId(m.swap.receiverEOA, _srcChainId, uint64(block.chainid), _message);
 
         // collect data about failed cross-chain for manual refund
-        refundDetails[id] = RefundData(m.swap.integrator, _token, _amount, m.receiver, m.swap.nativeOut);
+        refundDetails[id] = RefundData(m.swap.integrator, _token, _amount, m.swap.receiverEOA, m.swap.nativeOut);
 
         // Failed status means user hasn't received funds
         _afterTargetProcessing(id, _amount, SwapStatus.Failed);
@@ -155,9 +155,9 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
 
-        bytes32 id = _computeSwapRequestId(m.receiver, uint64(block.chainid), m.dstChainId, _message);
+        bytes32 id = _computeSwapRequestId(m.swap.receiverEOA, uint64(block.chainid), m.dstChainId, _message);
 
-        _sendToken(_token, _amount, m.receiver, m.swap.nativeOut);
+        _sendToken(_token, _amount, m.swap.receiverEOA, m.swap.nativeOut);
 
         _afterTargetProcessing(id, _amount, SwapStatus.Fallback);
 
@@ -171,7 +171,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         bytes32 _id,
         SwapRequestDest memory _msgDst
     ) private {
-        _sendToken(_inputToken, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
+        _sendToken(_inputToken, _amount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
 
         _afterTargetProcessing(_id, _amount, SwapStatus.Succeeded);
     }
@@ -192,11 +192,11 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
         (bool success, uint256 dstAmount) = _trySwapV2(_dstSwap, _amount);
         if (success) {
-            _sendToken(_outputToken, dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
+            _sendToken(_outputToken, dstAmount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
             _afterTargetProcessing(_id, dstAmount, SwapStatus.Succeeded);
         } else {
             // handle swap failure, send the received token directly to receiver
-            _sendToken(_inputToken, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
+            _sendToken(_inputToken, _amount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
             _afterTargetProcessing(_id, _amount, SwapStatus.Fallback);
         }
     }
@@ -217,11 +217,11 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
         (bool success, uint256 dstAmount) = _trySwapV3(_dstSwap, _amount);
         if (success) {
-            _sendToken(_outputToken, dstAmount, _msgDst.receiver, _msgDst.swap.nativeOut);
+            _sendToken(_outputToken, dstAmount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
             _afterTargetProcessing(_id, dstAmount, SwapStatus.Succeeded);
         } else {
             // handle swap failure, send the received token directly to receiver
-            _sendToken(_inputToken, _amount, _msgDst.receiver, _msgDst.swap.nativeOut);
+            _sendToken(_inputToken, _amount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
             _afterTargetProcessing(_id, _amount, SwapStatus.Fallback);
         }
     }
