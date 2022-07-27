@@ -205,7 +205,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         uint256 _amount,
         bytes32 _id,
         SwapRequestDest memory _msgDst
-    ) private isTransit(_inputToken, _msgDst.swap.path[0]) {
+    ) private isTransit(_inputToken, address(_getFirstBytes20(_msgDst.swap.pathV3))) {
        SwapInfoV3 memory _dstSwap = SwapInfoV3({
             dex: _msgDst.swap.dex,
             path: _msgDst.swap.pathV3,
