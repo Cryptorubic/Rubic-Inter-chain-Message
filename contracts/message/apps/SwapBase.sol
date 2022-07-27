@@ -110,10 +110,7 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         require(msg.value >= _amountIn, 'amount insufficient');
         IWETH(nativeWrap).deposit{value: _amountIn}();
 
-        _fee =
-            msg.value -
-            _amountIn -
-            accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
+        _fee = accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId) - _amountIn;
     }
 
     function _deriveFeeAndPerformChecks(
