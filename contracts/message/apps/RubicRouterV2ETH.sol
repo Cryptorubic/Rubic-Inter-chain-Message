@@ -12,7 +12,7 @@
 //    using SafeERC20Upgradeable for IERC20Upgradeable;
 //    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 //
-//    event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status);
+//    event CrossChainProcessed(bytes32 id, uint256 dstAmount, SwapStatus status);
 //
 //    /// @dev This modifier prevents using executor functions
 //    modifier onlyExecutor(address _executor) {
@@ -139,7 +139,7 @@
 //        // Failed status means user hasn't received funds
 //        SwapStatus status = SwapStatus.Failed;
 //        processedTransactions[id] = status;
-//        emit SwapRequestDone(id, _amount, status);
+//        emit CrossChainProcessed(id, _amount, status);
 //        // always return Fail to mark this transfer as failed since if this function is called then there nothing more
 //        // we can do in this app as the swap failures are already handled in executeMessageWithTransfer
 //        return ExecutionStatus.Fail;
@@ -173,7 +173,7 @@
 //
 //        SwapStatus status = SwapStatus.Fallback;
 //        processedTransactions[id] = status;
-//        emit SwapRequestDone(id, _amount, status);
+//        emit CrossChainProcessed(id, _amount, status);
 //
 //        return ExecutionStatus.Success;
 //    }
@@ -196,7 +196,7 @@
 //        status = SwapStatus.Succeeded;
 //
 //        processedTransactions[_id] = status;
-//        emit SwapRequestDone(_id, _amount, status);
+//        emit CrossChainProcessed(_id, _amount, status);
 //    }
 //
 //    function _executeDstSwapV2(
@@ -235,7 +235,7 @@
 //            processedTransactions[_id] = status;
 //        }
 //
-//        emit SwapRequestDone(_id, dstAmount, status);
+//        emit CrossChainProcessed(_id, dstAmount, status);
 //    }
 //
 //    function _executeDstSwapV3(
@@ -274,7 +274,7 @@
 //            processedTransactions[_id] = status;
 //        }
 //
-//        emit SwapRequestDone(_id, dstAmount, status);
+//        emit CrossChainProcessed(_id, dstAmount, status);
 //    }
 //
 //    function _sendToken(

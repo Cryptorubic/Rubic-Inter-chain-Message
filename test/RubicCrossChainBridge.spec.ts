@@ -14,7 +14,7 @@ import {
     EXECUTOR_ADDRESS,
     INTEGRATOR,
     DEFAULT_AMOUNT_IN_USDC,
-    MESSAGE_BUS_FEE, VERSION_V3
+    MESSAGE_BUS_FEE
 } from './shared/consts';
 import { BigNumber as BN, BigNumberish, ContractTransaction } from 'ethers';
 const hre = require('hardhat');
@@ -192,8 +192,9 @@ describe('RubicCrossChainBridge', () => {
     });
 
     beforeEach('deploy fixture', async () => {
-        ({ swapMain, transitToken, wnative, router, testMessagesContract } =
-            await loadFixture(swapContractFixtureInFork));
+        ({ swapMain, transitToken, wnative, router, testMessagesContract } = await loadFixture(
+            swapContractFixtureInFork
+        ));
     });
 
     it('constructor initializes', async () => {
@@ -299,7 +300,7 @@ describe('RubicCrossChainBridge', () => {
                             message,
                             EXECUTOR_ADDRESS
                         )
-                    ).to.emit(swapMain, 'SwapRequestDone');
+                    ).to.emit(swapMain, 'CrossChainProcessed');
                     let tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
                     // take only platform comission in transit token
                     const { feeAmount } = await calcTokenFees({
@@ -358,7 +359,7 @@ describe('RubicCrossChainBridge', () => {
                             message,
                             EXECUTOR_ADDRESS
                         )
-                    ).to.emit(swapMain, 'SwapRequestDone');
+                    ).to.emit(swapMain, 'CrossChainProcessed');
                     let tokenBalanceAfter = await wnative.balanceOf(swapMain.address);
                     const { feeAmount } = await calcTokenFees({
                         bridge: swapMain,
@@ -446,7 +447,7 @@ describe('RubicCrossChainBridge', () => {
                                 message,
                                 EXECUTOR_ADDRESS
                             )
-                        ).to.emit(swapMain, 'SwapRequestDone');
+                        ).to.emit(swapMain, 'CrossChainProcessed');
 
                         const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
 

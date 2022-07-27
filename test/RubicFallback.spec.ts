@@ -225,7 +225,7 @@ describe('RubicFallback', () => {
                         await callExecuteMessageWithTransferFallback({
                             message: message
                         })
-                    ).to.emit(swapMain, 'SwapRequestDone');
+                    ).to.emit(swapMain, 'CrossChainProcessed');
                     //.withArgs(ID, DEFAULT_AMOUNT_IN_USDC, '3');
                     const balanceAfter = await transitToken.balanceOf(wallet.address);
                     await expect(balanceBefore).to.be.eq(balanceAfter);
@@ -248,7 +248,7 @@ describe('RubicFallback', () => {
                         await callExecuteMessageWithTransferFallback({
                             message: message
                         })
-                    ).to.emit(swapMain, 'SwapRequestDone');
+                    ).to.emit(swapMain, 'CrossChainProcessed');
                     const balanceAfter = await transitToken.balanceOf(wallet.address);
                     await expect(balanceBefore).to.be.eq(balanceAfter);
                 });
@@ -266,7 +266,7 @@ describe('RubicFallback', () => {
                         await callExecuteMessageWithTransferFallback({
                             message: message
                         })
-                    ).to.emit(swapMain, 'SwapRequestDone');
+                    ).to.emit(swapMain, 'CrossChainProcessed');
                     const balanceAfter = await transitToken.balanceOf(wallet.address);
                     await expect(balanceBefore).to.be.eq(balanceAfter);
                 });
@@ -308,7 +308,7 @@ describe('RubicFallback', () => {
                             await callExecuteMessageWithTransferRefund({
                                 message: message
                             })
-                        ).to.emit(swapMain, 'SwapRequestDone');
+                        ).to.emit(swapMain, 'CrossChainProcessed');
                         // .withArgs(ID, DEFAULT_AMOUNT_IN_USDC, '3');
 
                         const balanceAfter = await transitToken.balanceOf(wallet.address);
@@ -333,7 +333,7 @@ describe('RubicFallback', () => {
                             await callExecuteMessageWithTransferRefund({
                                 message: message
                             })
-                        ).to.emit(swapMain, 'SwapRequestDone');
+                        ).to.emit(swapMain, 'CrossChainProcessed');
                         const balanceAfter = await transitToken.balanceOf(wallet.address);
                         await expect(balanceBefore.add(DEFAULT_AMOUNT_IN_USDC)).to.be.eq(
                             balanceAfter
@@ -353,7 +353,7 @@ describe('RubicFallback', () => {
                             await callExecuteMessageWithTransferRefund({
                                 message: message
                             })
-                        ).to.emit(swapMain, 'SwapRequestDone');
+                        ).to.emit(swapMain, 'CrossChainProcessed');
                         const balanceAfter = await transitToken.balanceOf(wallet.address);
                         await expect(balanceBefore.add(DEFAULT_AMOUNT_IN_USDC)).to.be.eq(
                             balanceAfter

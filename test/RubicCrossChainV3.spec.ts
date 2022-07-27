@@ -332,7 +332,7 @@ describe('RubicCrossChainV3', () => {
                             message,
                             EXECUTOR_ADDRESS
                         )
-                    ).to.emit(swapMain, 'SwapRequestDone');
+                    ).to.emit(swapMain, 'CrossChainProcessed');
                     let tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
                     // take only platform comission in transit token
                     const platformFee = Number(await _swapMain.feeAmountOfBlockchain(DST_CHAIN_ID)) / feeDecimals;
@@ -374,7 +374,7 @@ describe('RubicCrossChainV3', () => {
                             message,
                             EXECUTOR_ADDRESS
                         )
-                    ).to.emit(swapMain, 'SwapRequestDone');
+                    ).to.emit(swapMain, 'CrossChainProcessed');
 
                     let tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
 
@@ -435,7 +435,7 @@ describe('RubicCrossChainV3', () => {
                                 message,
                                 EXECUTOR_ADDRESS
                             )
-                        ).to.emit(swapMain, 'SwapRequestDone');
+                        ).to.emit(swapMain, 'CrossChainProcessed');
 
                         const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
                         const collectedFee1 = await swapMain.availableRubicFee(transitToken.address);
@@ -497,7 +497,7 @@ describe('RubicCrossChainV3', () => {
                                 message,
                                 EXECUTOR_ADDRESS
                             )
-                        ).to.emit(swapMain, 'SwapRequestDone');
+                        ).to.emit(swapMain, 'CrossChainProcessed');
 
                         const tokenBalanceAfter = await transitToken.balanceOf(swapMain.address);
                         const collectedFee1 = await swapMain.availableRubicFee(transitToken.address);

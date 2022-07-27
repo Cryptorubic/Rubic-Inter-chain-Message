@@ -11,8 +11,6 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-    event SwapRequestDone(bytes32 id, uint256 dstAmount, SwapStatus status);
-
     constructor(
         uint256 _fixedCryptoFee,
         uint256 _RubicPlatformFee,
@@ -131,7 +129,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         refundDetails[id] = RefundData(m.swap.integrator, _token, _amount, m.swap.receiverEOA, m.swap.nativeOut);
 
         // Failed status means user hasn't received funds
-        _afterTargetProcessing(id, _amount, SwapStatus.Failed);
+        _afterTargetProcessing(id, _token, _amount, SwapStatus.Failed);
         // always return Fail to mark this transfer as failed since if this function is called then there nothing more
         // we can do in this app as the swap failures are already handled in executeMessageWithTransfer
         return ExecutionStatus.Fail;
@@ -159,7 +157,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
         _sendToken(_token, _amount, m.swap.receiverEOA, m.swap.nativeOut);
 
-        _afterTargetProcessing(id, _amount, SwapStatus.Fallback);
+        _afterTargetProcessing(id, _token, _amount, SwapStatus.Fallback);
 
         return ExecutionStatus.Success;
     }
@@ -173,7 +171,7 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     ) private {
         _sendToken(_inputToken, _amount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
 
-        _afterTargetProcessing(_id, _amount, SwapStatus.Succeeded);
+        _afterTargetProcessing(_id, _inputToken, _amount, SwapStatus.Succeeded);
     }
 
     function _executeDstSwapV2(
@@ -193,11 +191,11 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         (bool success, uint256 dstAmount) = _trySwapV2(_dstSwap, _amount);
         if (success) {
             _sendToken(_outputToken, dstAmount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
-            _afterTargetProcessing(_id, dstAmount, SwapStatus.Succeeded);
+            _afterTargetProcessing(_id, _outputToken, dstAmount, SwapStatus.Succeeded);
         } else {
             // handle swap failure, send the received token directly to receiver
             _sendToken(_inputToken, _amount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
-            _afterTargetProcessing(_id, _amount, SwapStatus.Fallback);
+            _afterTargetProcessing(_id, _inputToken, _amount, SwapStatus.Fallback);
         }
     }
 
@@ -218,11 +216,11 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         (bool success, uint256 dstAmount) = _trySwapV3(_dstSwap, _amount);
         if (success) {
             _sendToken(_outputToken, dstAmount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
-            _afterTargetProcessing(_id, dstAmount, SwapStatus.Succeeded);
+            _afterTargetProcessing(_id, _outputToken, dstAmount, SwapStatus.Succeeded);
         } else {
             // handle swap failure, send the received token directly to receiver
             _sendToken(_inputToken, _amount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
-            _afterTargetProcessing(_id, _amount, SwapStatus.Fallback);
+            _afterTargetProcessing(_id, _inputToken, _amount, SwapStatus.Fallback);
         }
     }
 
@@ -242,11 +240,12 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
 
     function _afterTargetProcessing(
         bytes32 _id,
+        address _token,
         uint256 _amount,
         SwapStatus _status
     ) private {
         processedTransactions[_id] = _status;
-        emit SwapRequestDone(_id, _amount, _status);
+        emit CrossChainProcessed(_id, _token, _amount, _status);
     }
 
     function sweepTokens(address _token, uint256 _amount) external onlyAdmin {
