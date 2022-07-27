@@ -8,13 +8,13 @@ import {
     DEADLINE,
     DST_CHAIN_ID,
     DEFAULT_AMOUNT_IN,
-    VERSION,
+    VERSION_V2,
     ZERO_ADDRESS,
     DEFAULT_AMOUNT_OUT_MIN,
     EXECUTOR_ADDRESS,
     INTEGRATOR,
     DEFAULT_AMOUNT_IN_USDC,
-    MESSAGE_BUS_FEE
+    MESSAGE_BUS_FEE, VERSION_V3
 } from './shared/consts';
 import { BigNumber as BN, BigNumberish, ContractTransaction } from 'ethers';
 const hre = require('hardhat');
@@ -64,8 +64,9 @@ describe('RubicCrossChainBridge', () => {
             {
                 dex: router,
                 nativeOut: nativeOut,
+                receiverEOA: other.address,
                 integrator: integrator,
-                version: VERSION,
+                version: VERSION_V2,
                 path: [wnative.address, transitToken.address],
                 pathV3: '0x',
                 deadline: DEADLINE,
@@ -102,8 +103,9 @@ describe('RubicCrossChainBridge', () => {
             {
                 dex: router,
                 nativeOut: nativeOut,
+                receiverEOA: other.address,
                 integrator: integrator,
-                version: VERSION,
+                version: VERSION_V2,
                 path: [wnative.address, transitToken.address],
                 pathV3: '0x',
                 deadline: DEADLINE,
@@ -120,8 +122,9 @@ describe('RubicCrossChainBridge', () => {
         dstChainId: BigNumberish,
         {
             dex = router,
+            receiverEOA = other.address,
             integrator = ethers.constants.AddressZero,
-            version = VERSION,
+            version = VERSION_V2,
             path = [wnative.address, transitToken.address],
             pathV3 = '0x',
             deadline = DEADLINE,
@@ -134,6 +137,7 @@ describe('RubicCrossChainBridge', () => {
             {
                 dex,
                 nativeOut,
+                receiverEOA,
                 integrator,
                 version,
                 path,
@@ -141,7 +145,6 @@ describe('RubicCrossChainBridge', () => {
                 deadline,
                 amountOutMinimum
             },
-            _receiver,
             _nonce,
             dstChainId
         );
