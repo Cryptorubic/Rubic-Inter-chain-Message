@@ -362,8 +362,7 @@ describe('RubicCrossChainV2', () => {
 
                     const { feeAmount } = await calcTokenFees({
                         bridge: swapMain,
-                        amountWithFee: ethers.BigNumber.from('1000000000'),
-                        initChainID: DST_CHAIN_ID
+                        amountWithFee: ethers.BigNumber.from('1000000000')
                     });
                     // take only platform comission in transit token
                     await expect(Number(tokenBalanceAfter)).to.be.eq(feeAmount);
@@ -405,9 +404,8 @@ describe('RubicCrossChainV2', () => {
 
                     const { RubicFee, feeAmount } = await calcTokenFees({
                         bridge: swapMain,
-                        amountWithFee: ethers.BigNumber.from('1000000000'),
+                        amountWithFee: ethers.BigNumber.from('1000000000')
                         //integrator: INTEGRATOR,
-                        initChainID: DST_CHAIN_ID
                     });
 
                     // take only platform comission in transit token
@@ -482,8 +480,7 @@ describe('RubicCrossChainV2', () => {
                         const { integratorFee, RubicFee, feeAmount } = await calcTokenFees({
                             bridge: swapMain,
                             amountWithFee: ethers.BigNumber.from('1000000000'),
-                            integrator: INTEGRATOR,
-                            initChainID: DST_CHAIN_ID
+                            integrator: INTEGRATOR
                         });
 
                         await expect(integratorCollectedFee1).to.be.eq(integratorFee);
@@ -541,8 +538,7 @@ describe('RubicCrossChainV2', () => {
                         const { integratorFee, RubicFee, feeAmount } = await calcTokenFees({
                             bridge: swapMain,
                             amountWithFee: ethers.BigNumber.from('1000000000'),
-                            integrator: INTEGRATOR,
-                            initChainID: DST_CHAIN_ID
+                            integrator: INTEGRATOR
                         });
 
                         await expect(integratorCollectedFee1).to.be.eq(integratorFee);
@@ -598,8 +594,7 @@ describe('RubicCrossChainV2', () => {
                         const { integratorFee, RubicFee, feeAmount } = await calcTokenFees({
                             bridge: swapMain,
                             amountWithFee: ethers.BigNumber.from('1000000000'),
-                            integrator: INTEGRATOR,
-                            initChainID: DST_CHAIN_ID
+                            integrator: INTEGRATOR
                         });
 
                         await expect(integratorCollectedFee1).to.be.eq(integratorFee);

@@ -45,6 +45,7 @@ describe('RubicFallback', () => {
         dstChainId: BigNumberish,
         {
             dex = router,
+            receiverEOA = other.address,
             integrator = INTEGRATOR,
             version = VERSION,
             path = [wnative.address, transitToken.address],
@@ -59,6 +60,7 @@ describe('RubicFallback', () => {
             {
                 dex,
                 nativeOut,
+                receiverEOA,
                 integrator,
                 version,
                 path,
@@ -66,7 +68,6 @@ describe('RubicFallback', () => {
                 deadline,
                 amountOutMinimum
             },
-            _receiver,
             _nonce,
             dstChainId
         );
@@ -81,6 +82,7 @@ describe('RubicFallback', () => {
         _nonce: BigNumberish,
         {
             dex = router,
+            receiverEOA = other.address,
             integrator = ZERO_ADDRESS,
             version = VERSION,
             path = [wnative.address, transitToken.address],
@@ -94,12 +96,12 @@ describe('RubicFallback', () => {
         } = {}
     ): Promise<string> {
         return messagesContract.getID(
-            _receiver,
             _srcChainId,
             _dstChainId,
             {
                 dex,
                 nativeOut,
+                receiverEOA,
                 integrator,
                 version,
                 path,

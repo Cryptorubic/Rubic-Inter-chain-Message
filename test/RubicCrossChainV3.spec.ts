@@ -37,7 +37,6 @@ describe('RubicCrossChainV3', () => {
     let router: string;
     let routerV3: string;
     let wnative: WETH9;
-    let chainId: number;
 
     let testMessagesContract: TestMessages;
 
@@ -347,8 +346,7 @@ describe('RubicCrossChainV3', () => {
                     // take only platform comission in transit token
                     const { feeAmount } = await calcTokenFees({
                         bridge: swapMain,
-                        amountWithFee: ethers.BigNumber.from('1000000000'),
-                        initChainID: DST_CHAIN_ID
+                        amountWithFee: ethers.BigNumber.from('1000000000')
                     });
                     // take only platform comission in transit token
                     await expect(tokenBalanceAfter).to.be.eq(feeAmount);
@@ -392,9 +390,8 @@ describe('RubicCrossChainV3', () => {
 
                     const { RubicFee, feeAmount } = await calcTokenFees({
                         bridge: swapMain,
-                        amountWithFee: ethers.BigNumber.from('1000000000'),
+                        amountWithFee: ethers.BigNumber.from('1000000000')
                         //integrator: INTEGRATOR,
-                        initChainID: DST_CHAIN_ID
                     });
 
                     // take only platform comission in transit token
@@ -473,8 +470,7 @@ describe('RubicCrossChainV3', () => {
                         const { integratorFee, RubicFee, feeAmount } = await calcTokenFees({
                             bridge: swapMain,
                             amountWithFee: ethers.BigNumber.from('1000000000'),
-                            integrator: INTEGRATOR,
-                            initChainID: DST_CHAIN_ID
+                            integrator: INTEGRATOR
                         });
 
                         await expect(integratorCollectedFee1).to.be.eq(integratorFee);
@@ -534,8 +530,7 @@ describe('RubicCrossChainV3', () => {
                         const { integratorFee, RubicFee, feeAmount } = await calcTokenFees({
                             bridge: swapMain,
                             amountWithFee: ethers.BigNumber.from('1000000000'),
-                            integrator: INTEGRATOR,
-                            initChainID: DST_CHAIN_ID
+                            integrator: INTEGRATOR
                         });
 
                         await expect(integratorCollectedFee1).to.be.eq(integratorFee);
