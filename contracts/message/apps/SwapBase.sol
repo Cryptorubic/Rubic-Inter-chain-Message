@@ -204,7 +204,8 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
 
             return _swapInfo.path[_swapInfo.path.length - 1];
         } else {
-            return _swapInfo.path[_swapInfo.path.length - 1];
+            require(_swapInfo.path.length == 1, 'dst bridge expected');
+            return _swapInfo.path[0];
         }
     }
 
