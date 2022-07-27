@@ -66,6 +66,7 @@ export const swapContractFixtureInFork: Fixture<SwapContractFixture> = async fun
         TEST_NATIVE
     )) as RubicRouterV2;
 
+    await swapMain.setGasFeeOfBlockchain(DST_CHAIN_ID, ethers.utils.parseEther('2').div('100'));
 
     const testMessagesFactory = await ethers.getContractFactory('TestMessages');
     const testMessagesContract = (await testMessagesFactory.deploy()) as TestMessages;
