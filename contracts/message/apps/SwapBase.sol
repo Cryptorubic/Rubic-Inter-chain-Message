@@ -90,14 +90,6 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         bridge
     }
 
-    // ============== fee logic ==============
-
-    function _calculateCryptoFee(uint256 _fee, uint64 _dstChainId) internal view returns (uint256 updatedFee) {
-        require(_fee >= blockchainToGasFee[_dstChainId], 'too few crypto fee');
-        uint256 _updatedFee = _fee - blockchainToGasFee[_dstChainId];
-        return (_updatedFee);
-    }
-
     // ============== common checks for src swaps ==============
 
     function _deriveFeeAndPerformChecksNative(
