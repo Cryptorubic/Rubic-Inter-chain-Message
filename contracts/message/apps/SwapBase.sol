@@ -113,7 +113,7 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
     ) internal onlyEOA whenNotPaused returns (uint256 _fee) {
         IERC20Upgradeable(srcInputToken).safeTransferFrom(msg.sender, address(this), _amountIn);
 
-        _fee = msg.value - accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
+        _fee = accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
     }
 
     // ============== Celer call ==============
