@@ -129,6 +129,7 @@ module.exports = {
       // arbitrum
       arbitrumOne: process.env.ARBITRUM_API_KEY,
       arbitrumTestnet: process.env.ARBITRUM_API_KEY,
+      aurora: process.env.AURORA_API_KEY
     },
     //apiKey: `${process.env.AURORA_API_KEY}`,
   },
