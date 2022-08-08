@@ -1,5 +1,6 @@
+import { ethers } from 'hardhat';
+
 const hre = require('hardhat');
-const { ethers } = require('hardhat');
 
 async function main() {
     const CrossChainSwap = await hre.ethers.getContractFactory('RubicRouterV2');
@@ -10,18 +11,19 @@ async function main() {
      *    address _nativeWrap
      */
 
-    // ETH Aurora 1313161554
-    // MessageBus 0xc1a2D967DfAa6A10f3461bc21864C23C1DD51EeA
-    // ETH native token address : 0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB
-    // USDC token address: 0xB12BFcA5A55806AaF64E99521918A4bf0fC40802
-    // SUSHI:
+    // AVALANCHE 43114
+    // MessageBus 0x5a926eeeAFc4D217ADd17e9641e8cE23Cd01Ad57
+    // WAVAX native token address in AVALANCHE: 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7
+    // USDC token address in AVALANCHE: 0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664
+    // SUSHI: 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506
 
     const CrossChainSwapDeploy = await CrossChainSwap.deploy(
         ethers.utils.parseEther('1').div('1000'),
-        '0', // 0.3%
+        '3000', // 0.3%
         [
-            '0x2CB45Edb4517d5947aFdE3BEAbF95A582506858B',
-            '0xa3a1eF5Ae6561572023363862e238aFA84C72ef5'
+            '0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106',
+            '0x60aE616a2155Ee3d9A68541Ba4544862310933d4',
+            '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
         ],
         [],
         [],
@@ -29,8 +31,8 @@ async function main() {
         [],
         [],
         '0x503cef47ce5e37aa62544a363bef3c9b62d42116',
-        '0xc1a2D967DfAa6A10f3461bc21864C23C1DD51EeA',
-        '0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB'
+        '0x5a926eeeAFc4D217ADd17e9641e8cE23Cd01Ad57',
+        '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7'
     );
 
     await CrossChainSwapDeploy.deployed();
@@ -42,10 +44,11 @@ async function main() {
         address: CrossChainSwapDeploy.address,
         constructorArguments: [
             ethers.utils.parseEther('1').div('1000'),
-            '0', // 0.3%
+            '3000', // 0.3%
             [
-                '0x2CB45Edb4517d5947aFdE3BEAbF95A582506858B',
-                '0xa3a1eF5Ae6561572023363862e238aFA84C72ef5'
+                '0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106',
+                '0x60aE616a2155Ee3d9A68541Ba4544862310933d4',
+                '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
             ],
             [],
             [],
@@ -53,8 +56,8 @@ async function main() {
             [],
             [],
             '0x503cef47ce5e37aa62544a363bef3c9b62d42116',
-            '0xc1a2D967DfAa6A10f3461bc21864C23C1DD51EeA',
-            '0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB'
+            '0x5a926eeeAFc4D217ADd17e9641e8cE23Cd01Ad57',
+            '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7'
         ]
     });
 }
