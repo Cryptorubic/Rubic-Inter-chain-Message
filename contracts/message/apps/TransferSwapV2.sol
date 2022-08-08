@@ -6,10 +6,8 @@ import './SwapBase.sol';
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 
 contract TransferSwapV2 is SwapBase {
-    using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.AddressSet;
-
-    event SwapRequestSentV2(bytes32 id, uint64 dstChainId, uint256 srcAmount, address srcToken);
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     function transferWithSwapV2Native(
         address _receiver,
@@ -18,14 +16,19 @@ contract TransferSwapV2 is SwapBase {
         SwapInfoV2 calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
-    ) external payable onlyEOA whenNotPaused {
-        require(_srcSwap.path[0] == nativeWrap, 'token mismatch');
-        require(msg.value >= _amountIn, 'Amount insufficient');
-        IWETH(nativeWrap).deposit{value: _amountIn}();
+    ) external payable {
+        uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, _srcSwap.path[0]);
 
-        uint256 _fee = _calculateCryptoFee(msg.value - _amountIn, _dstChainId);
-
-        _transferWithSwapV2(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee);
+        _swapAndSendMessageV2(
+            _receiver,
+            _amountIn,
+            _dstChainId,
+            _srcSwap,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _fee,
+            _srcSwap.path[_srcSwap.path.length - 1]
+        );
     }
 
     function transferWithSwapV2(
@@ -35,12 +38,19 @@ contract TransferSwapV2 is SwapBase {
         SwapInfoV2 calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
-    ) external payable onlyEOA whenNotPaused {
-        IERC20(_srcSwap.path[0]).safeTransferFrom(msg.sender, address(this), _amountIn);
+    ) external payable {
+        uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, _srcSwap.path[0]);
 
-        uint256 _fee = _calculateCryptoFee(msg.value, _dstChainId);
-
-        _transferWithSwapV2(_receiver, _amountIn, _dstChainId, _srcSwap, _dstSwap, _maxBridgeSlippage, _fee);
+        _swapAndSendMessageV2(
+            _receiver,
+            _amountIn,
+            _dstChainId,
+            _srcSwap,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _fee,
+            _srcSwap.path[_srcSwap.path.length - 1]
+        );
     }
 
     /**
@@ -57,85 +67,52 @@ contract TransferSwapV2 is SwapBase {
      *        transfer can be refunded.
      * @param _fee the fee to pay to MessageBus.
      */
-    function _transferWithSwapV2(
+    function _swapAndSendMessageV2(
         address _receiver,
         uint256 _amountIn,
         uint64 _dstChainId,
         SwapInfoV2 calldata _srcSwap,
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage,
-        uint256 _fee
+        uint256 _fee,
+        address _outputToken
     ) private {
-        nonce += 1;
-        uint64 chainId = uint64(block.chainid);
-
-        require(_srcSwap.path.length > 1 && _dstChainId != chainId, 'empty src swap path or same chain id');
-
-        address srcTokenOut = _srcSwap.path[_srcSwap.path.length - 1];
-        uint256 srcAmtOut = _amountIn;
-
-        // swap source token for transit token on the source DEX
-        bool success;
-        (success, srcAmtOut) = _trySwapV2(_srcSwap, _amountIn);
-        if (!success) revert('src swap failed');
-
-        require(srcAmtOut >= minSwapAmount[srcTokenOut], 'amount must be greater than min swap amount');
-        require(srcAmtOut <= maxSwapAmount[srcTokenOut], 'amount must be lower than max swap amount');
-
-        _crossChainTransferWithSwapV2(
-            _receiver,
+        BaseCrossChainParams memory _baseParams = BaseCrossChainParams(
+            _srcSwap.path[0],
             _amountIn,
-            chainId,
             _dstChainId,
-            _srcSwap,
+            _retrieveDstTokenAddress(_dstSwap),
+            _dstSwap.amountOutMinimum,
+            msg.sender,
+            _dstSwap.integrator,
+            _srcSwap.dex
+        );
+
+        require(_srcSwap.path.length > 1, 'empty swap path');
+
+        (bool success, uint256 srcAmtOut) = _trySwapV2(_srcSwap, _amountIn);
+
+        bytes32 id = _sendMessage(
+            _receiver,
+            uint64(_baseParams.dstChainID),
             _dstSwap,
             _maxBridgeSlippage,
-            nonce,
+            _beforeSwapAndSendMessage(),
             _fee,
-            srcTokenOut,
-            srcAmtOut
-        );
-    }
-
-    function _crossChainTransferWithSwapV2(
-        address _receiver,
-        uint256 _amountIn,
-        uint64 _chainId,
-        uint64 _dstChainId,
-        SwapInfoV2 calldata _srcSwap,
-        SwapInfoDest calldata _dstSwap,
-        uint32 _maxBridgeSlippage,
-        uint64 _nonce,
-        uint256 _fee,
-        address srcTokenOut,
-        uint256 srcAmtOut
-    ) private {
-        require(_dstSwap.path.length > 0, 'empty dst swap path');
-        bytes memory message = abi.encode(
-            SwapRequestDest({swap: _dstSwap, receiver: msg.sender, nonce: nonce, dstChainId: _dstChainId})
-        );
-        bytes32 id = _computeSwapRequestId(msg.sender, _chainId, _dstChainId, message);
-
-        sendMessageWithTransfer(
-            _receiver,
-            srcTokenOut,
+            _outputToken,
             srcAmtOut,
-            _dstChainId,
-            _nonce,
-            _maxBridgeSlippage,
-            message,
-            MsgDataTypes.BridgeSendType.Liquidity,
-            _fee
+            success
         );
-        emit SwapRequestSentV2(id, _dstChainId, _amountIn, _srcSwap.path[0]);
+
+        emit CrossChainRequestSent(id, _baseParams);
     }
 
     function _trySwapV2(SwapInfoV2 memory _swap, uint256 _amount) internal returns (bool ok, uint256 amountOut) {
-        if (!supportedDEXes.contains(_swap.dex)) {
+        if (!availableRouters.contains(_swap.dex)) {
             return (false, 0);
         }
 
-        smartApprove(IERC20(_swap.path[0]), _amount, _swap.dex);
+        SmartApprove.smartApprove(_swap.path[0], _amount, _swap.dex);
 
         try
             IUniswapV2Router02(_swap.dex).swapExactTokensForTokens(

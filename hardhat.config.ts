@@ -9,12 +9,13 @@ import '@openzeppelin/hardhat-upgrades';
 import { SolcUserConfig } from 'hardhat/types'
 
 import * as dotenv from 'dotenv';
+import {float} from "hardhat/internal/core/params/argumentTypes";
 dotenv.config();
 const DEFAULT_PRIVATE_KEY = process.env.MNEMONIC || '1000000000000000000000000000000000000000000000000000000000000000';
 
 
 const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
-  version: '0.8.9',
+  version: '0.8.15',
   settings: {
     optimizer: {
       enabled: true,
@@ -44,7 +45,8 @@ module.exports = {
     eth: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_ID_PROJECT}`,
       chainId: 1,
-      accounts: [`0x${DEFAULT_PRIVATE_KEY}`]
+      accounts: [`0x${DEFAULT_PRIVATE_KEY}`],
+      gasPrice: 20000000000
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${process.env.INFURA_ID_PROJECT}`,
@@ -103,7 +105,8 @@ module.exports = {
     aurora: {
       url: `https://mainnet.aurora.dev`,
       chainId: 1313161554,
-      accounts: [`0x${DEFAULT_PRIVATE_KEY}`]
+      accounts: [`0x${DEFAULT_PRIVATE_KEY}`],
+      gasPrice: 80000000 //0.08 gwei
     },
   },
   etherscan: {
@@ -128,6 +131,7 @@ module.exports = {
       // arbitrum
       arbitrumOne: process.env.ARBITRUM_API_KEY,
       arbitrumTestnet: process.env.ARBITRUM_API_KEY,
+      aurora: process.env.AURORA_API_KEY
     },
     //apiKey: `${process.env.AURORA_API_KEY}`,
   },

@@ -51,7 +51,7 @@ describe('RubicSettings', () => {
         expect(await swapMain.messageBus()).to.eq(TEST_BUS);
 
         const routers = TEST_ROUTERS.split(',');
-        expect(await swapMain.getSupportedDEXes()).to.deep.eq(routers);
+        expect(await swapMain.getAvailableRouters()).to.deep.eq(routers);
     });
 
     describe('#Contract utility tests', () => {
@@ -88,7 +88,7 @@ describe('RubicSettings', () => {
             it('Should successfully sweep tokens', async () => {
                 const balanceBefore = await transitToken.balanceOf(wallet.address);
 
-                await swapMain.sweepTokens(transitToken.address, DEFAULT_AMOUNT_IN_USDC, true);
+                await swapMain.sweepTokens(transitToken.address, DEFAULT_AMOUNT_IN_USDC);
 
                 const balanceAfter = await transitToken.balanceOf(wallet.address);
                 await expect(balanceBefore.add(DEFAULT_AMOUNT_IN_USDC)).to.be.eq(balanceAfter);
@@ -97,7 +97,7 @@ describe('RubicSettings', () => {
             it('Should successfully sweep native', async () => {
                 const balanceBefore = await wnative.balanceOf(swapMain.address);
 
-                await swapMain.sweepTokens(wnative.address, DEFAULT_AMOUNT_IN, false);
+                await swapMain.sweepTokens(wnative.address, DEFAULT_AMOUNT_IN);
 
                 const balanceAfter = await wnative.balanceOf(swapMain.address);
                 await expect(balanceBefore.sub(DEFAULT_AMOUNT_IN)).to.be.eq(balanceAfter);
@@ -107,14 +107,14 @@ describe('RubicSettings', () => {
                 await expect(
                     swapMain
                         .connect(other)
-                        .sweepTokens(transitToken.address, DEFAULT_AMOUNT_IN_USDC, true)
-                ).to.be.revertedWith('Caller is not a manager');
+                        .sweepTokens(transitToken.address, DEFAULT_AMOUNT_IN_USDC)
+                ).to.be.revertedWith('BridgeBase: not a manager');
             });
 
             it('Should successfully fail sweepTokens', async () => {
                 await expect(
-                    swapMain.connect(other).sweepTokens(wnative.address, DEFAULT_AMOUNT_IN, false)
-                ).to.be.revertedWith('Caller is not a manager');
+                    swapMain.connect(other).sweepTokens(wnative.address, DEFAULT_AMOUNT_IN)
+                ).to.be.revertedWith('BridgeBase: not a manager');
             });
         });
     });
