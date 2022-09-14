@@ -2,10 +2,9 @@
 
 pragma solidity >=0.8.9;
 
-import './SwapBase.sol';
+import "./SwapBase.sol";
 
 contract BridgeSwap is SwapBase {
-
     function bridgeWithSwapNative(
         address _receiver,
         uint256 _amountIn,
@@ -14,9 +13,22 @@ contract BridgeSwap is SwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable {
-        uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, _srcBridgeToken);
+        uint256 _fee = _deriveFeeAndPerformChecksNative(
+            _amountIn,
+            _dstChainId,
+            _dstSwap.integrator,
+            _srcBridgeToken
+        );
 
-        _sendBridgeMessage(_receiver, _dstChainId, _srcBridgeToken, _dstSwap, _maxBridgeSlippage, _fee, _amountIn);
+        _sendBridgeMessage(
+            _receiver,
+            _dstChainId,
+            _srcBridgeToken,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _fee,
+            _amountIn
+        );
     }
 
     function bridgeWithSwap(
@@ -27,9 +39,22 @@ contract BridgeSwap is SwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable {
-        uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, _srcBridgeToken);
+        uint256 _fee = _deriveFeeAndPerformChecks(
+            _amountIn,
+            _dstChainId,
+            _dstSwap.integrator,
+            _srcBridgeToken
+        );
 
-        _sendBridgeMessage(_receiver, _dstChainId, _srcBridgeToken, _dstSwap, _maxBridgeSlippage, _fee, _amountIn);
+        _sendBridgeMessage(
+            _receiver,
+            _dstChainId,
+            _srcBridgeToken,
+            _dstSwap,
+            _maxBridgeSlippage,
+            _fee,
+            _amountIn
+        );
     }
 
     function _sendBridgeMessage(
@@ -52,7 +77,10 @@ contract BridgeSwap is SwapBase {
             address(0)
         );
 
-        require(_baseParams.dstChainID != uint64(block.chainid), 'same chain id');
+        require(
+            _baseParams.dstChainID != uint64(block.chainid),
+            "same chain id"
+        );
 
         bytes32 id = _sendMessage(
             _receiver,

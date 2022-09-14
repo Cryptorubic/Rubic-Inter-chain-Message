@@ -2,12 +2,12 @@
 
 pragma solidity >=0.8.9;
 
-import 'rubic-bridge-base/contracts/architecture/WithDestinationFunctionality.sol';
+import "rubic-bridge-base/contracts/architecture/WithDestinationFunctionality.sol";
 
-import 'rubic-bridge-base/contracts/libraries/SmartApprove.sol';
+import "rubic-bridge-base/contracts/libraries/SmartApprove.sol";
 
-import '../framework/MessageSenderApp.sol';
-import '../../interfaces/IWETH.sol';
+import "../framework/MessageSenderApp.sol";
+import "../../interfaces/IWETH.sol";
 
 contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -98,11 +98,17 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         address _integrator,
         address srcInputToken
     ) internal onlyEOA whenNotPaused returns (uint256 _fee) {
-        require(srcInputToken == nativeWrap, 'token mismatch');
-        require(msg.value >= _amountIn, 'amount insufficient');
+        require(srcInputToken == nativeWrap, "token mismatch");
+        require(msg.value >= _amountIn, "amount insufficient");
         IWETH(nativeWrap).deposit{value: _amountIn}();
 
-        _fee = accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId) - _amountIn;
+        _fee =
+            accrueFixedAndGasFees(
+                _integrator,
+                integratorToFeeInfo[_integrator],
+                _dstChainId
+            ) -
+            _amountIn;
     }
 
     function _deriveFeeAndPerformChecks(
@@ -111,9 +117,17 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         address _integrator,
         address srcInputToken
     ) internal onlyEOA whenNotPaused returns (uint256 _fee) {
-        IERC20Upgradeable(srcInputToken).safeTransferFrom(msg.sender, address(this), _amountIn);
+        IERC20Upgradeable(srcInputToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amountIn
+        );
 
-        _fee = accrueFixedAndGasFees(_integrator, integratorToFeeInfo[_integrator], _dstChainId);
+        _fee = accrueFixedAndGasFees(
+            _integrator,
+            integratorToFeeInfo[_integrator],
+            _dstChainId
+        );
     }
 
     // ============== Celer call ==============
@@ -129,11 +143,14 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         uint256 _srcAmtOut,
         bool _success
     ) internal returns (bytes32 id) {
-        if (!_success) revert('src swap failed');
+        if (!_success) revert("src swap failed");
 
-        require(_srcAmtOut >= minTokenAmount[_srcOutputToken], 'less than min');
+        require(_srcAmtOut >= minTokenAmount[_srcOutputToken], "less than min");
         if (maxTokenAmount[_srcOutputToken] > 0) {
-            require(_srcAmtOut <= maxTokenAmount[_srcOutputToken], 'greater than max');
+            require(
+                _srcAmtOut <= maxTokenAmount[_srcOutputToken],
+                "greater than max"
+            );
         }
 
         id = _crossChainTransferWithSwap(
@@ -159,11 +176,20 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         uint256 srcAmtOut
     ) private returns (bytes32 id) {
         // todo increment nonce in compute ...
-        require(_dstSwap.path.length > 0, 'empty dst swap path');
+        require(_dstSwap.path.length > 0, "empty dst swap path");
         bytes memory message = abi.encode(
-            SwapRequestDest({swap: _dstSwap, nonce: nonce, dstChainId: _dstChainId})
+            SwapRequestDest({
+                swap: _dstSwap,
+                nonce: nonce,
+                dstChainId: _dstChainId
+            })
         );
-        id = _computeSwapRequestId(_dstSwap.receiverEOA, uint64(block.chainid), _dstChainId, message);
+        id = _computeSwapRequestId(
+            _dstSwap.receiverEOA,
+            uint64(block.chainid),
+            _dstChainId,
+            message
+        );
 
         sendMessageWithTransfer(
             _receiver,
@@ -183,30 +209,42 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         return ++nonce;
     }
 
-    function _retrieveDstTokenAddress(SwapInfoDest memory _swapInfo) internal pure returns (address) {
+    function _retrieveDstTokenAddress(SwapInfoDest memory _swapInfo)
+        internal
+        pure
+        returns (address)
+    {
         if (_swapInfo.version == SwapVersion.v3) {
-            require(_swapInfo.pathV3.length > 20, 'dst swap expected');
+            require(_swapInfo.pathV3.length > 20, "dst swap expected");
 
             return address(_getLastBytes20(_swapInfo.pathV3));
         } else if (_swapInfo.version == SwapVersion.v2) {
-            require(_swapInfo.path.length > 1, 'dst swap expected');
+            require(_swapInfo.path.length > 1, "dst swap expected");
 
             return _swapInfo.path[_swapInfo.path.length - 1];
         } else {
-            require(_swapInfo.path.length == 1, 'dst bridge expected');
+            require(_swapInfo.path.length == 1, "dst bridge expected");
             return _swapInfo.path[0];
         }
     }
 
     // returns address of first token for V3
-    function _getFirstBytes20(bytes memory input) internal pure returns (bytes20 result) {
+    function _getFirstBytes20(bytes memory input)
+        internal
+        pure
+        returns (bytes20 result)
+    {
         assembly {
             result := mload(add(input, 32))
         }
     }
 
     // returns address of tokenOut for V3
-    function _getLastBytes20(bytes memory input) internal pure returns (bytes20 result) {
+    function _getLastBytes20(bytes memory input)
+        internal
+        pure
+        returns (bytes20 result)
+    {
         uint256 offset = input.length + 12;
         assembly {
             result := mload(add(input, offset))
@@ -219,13 +257,24 @@ contract SwapBase is MessageSenderApp, WithDestinationFunctionality {
         uint64 _dstChainId,
         bytes memory _message
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_receiverEOA, _srcChainId, _dstChainId, _message));
+        return
+            keccak256(
+                abi.encodePacked(
+                    _receiverEOA,
+                    _srcChainId,
+                    _dstChainId,
+                    _message
+                )
+            );
     }
 
     /**
      * @dev Function to check if the address in path is transit token received from Celer
      */
-    function checkIsTransit(address _transitToken, address _tokenInPath) internal pure {
-        require(_transitToken == _tokenInPath, 'first token must be transit');
+    function checkIsTransit(address _transitToken, address _tokenInPath)
+        internal
+        pure
+    {
+        require(_transitToken == _tokenInPath, "first token must be transit");
     }
 }

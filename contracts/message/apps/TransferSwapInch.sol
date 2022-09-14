@@ -2,10 +2,9 @@
 
 pragma solidity >=0.8.9;
 
-import './SwapBase.sol';
+import "./SwapBase.sol";
 
 contract TransferSwapInch is SwapBase {
-
     using AddressUpgradeable for address payable;
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
@@ -18,7 +17,12 @@ contract TransferSwapInch is SwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable {
-        uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, _srcSwap.path[0]);
+        uint256 _fee = _deriveFeeAndPerformChecksNative(
+            _amountIn,
+            _dstChainId,
+            _dstSwap.integrator,
+            _srcSwap.path[0]
+        );
 
         _swapAndSendMessageInch(
             _receiver,
@@ -40,7 +44,12 @@ contract TransferSwapInch is SwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable {
-        uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, _srcSwap.path[0]);
+        uint256 _fee = _deriveFeeAndPerformChecks(
+            _amountIn,
+            _dstChainId,
+            _dstSwap.integrator,
+            _srcSwap.path[0]
+        );
 
         _swapAndSendMessageInch(
             _receiver,
@@ -89,7 +98,7 @@ contract TransferSwapInch is SwapBase {
             _srcSwap.dex
         );
 
-        require(_srcSwap.path.length > 1, 'empty swap path');
+        require(_srcSwap.path.length > 1, "empty swap path");
 
         (bool success, uint256 srcAmtOut) = _trySwapInch(_srcSwap, _amountIn);
 
@@ -108,19 +117,25 @@ contract TransferSwapInch is SwapBase {
         emit CrossChainRequestSent(id, _baseParams);
     }
 
-    function _trySwapInch(SwapInfoInch memory _swap, uint256 _amount) internal returns (bool ok, uint256 amountOut) {
+    function _trySwapInch(SwapInfoInch memory _swap, uint256 _amount)
+        internal
+        returns (bool ok, uint256 amountOut)
+    {
         if (!availableRouters.contains(_swap.dex)) {
             return (false, 0);
         }
 
         SmartApprove.smartApprove(_swap.path[0], _amount, _swap.dex);
 
-        IERC20Upgradeable Transit = IERC20Upgradeable(_swap.path[_swap.path.length - 1]);
+        IERC20Upgradeable Transit = IERC20Upgradeable(
+            _swap.path[_swap.path.length - 1]
+        );
         uint256 transitBalanceBefore = Transit.balanceOf(address(this));
 
         AddressUpgradeable.functionCall(_swap.dex, _swap.data);
 
-        uint256 balanceDif = Transit.balanceOf(address(this)) - transitBalanceBefore;
+        uint256 balanceDif = Transit.balanceOf(address(this)) -
+            transitBalanceBefore;
 
         if (balanceDif >= _swap.amountOutMinimum) {
             return (true, balanceDif);

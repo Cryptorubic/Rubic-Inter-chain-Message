@@ -2,15 +2,14 @@
 
 pragma solidity >=0.8.9;
 
-import 'rubic-bridge-base/contracts/libraries/SmartApprove.sol';
+import "rubic-bridge-base/contracts/libraries/SmartApprove.sol";
 
-import '../../interfaces/IBridge.sol';
-import '../../interfaces/IMessageBus.sol';
+import "../../interfaces/IBridge.sol";
+import "../../interfaces/IMessageBus.sol";
 
-import './MsgDataTypes.sol';
+import "./MsgDataTypes.sol";
 
 library MessageSenderLib {
-
     // ============== Internal library functions called by apps ==============
 
     /**
@@ -85,9 +84,24 @@ library MessageSenderLib {
     ) internal returns (bytes32) {
         address bridge = IMessageBus(_messageBus).liquidityBridge();
         SmartApprove.smartApprove(_token, _amount, bridge);
-        IBridge(bridge).send(_receiver, _token, _amount, _dstChainId, _nonce, _maxSlippage);
+        IBridge(bridge).send(
+            _receiver,
+            _token,
+            _amount,
+            _dstChainId,
+            _nonce,
+            _maxSlippage
+        );
         bytes32 transferId = keccak256(
-            abi.encodePacked(address(this), _receiver, _token, _amount, _dstChainId, _nonce, uint64(block.chainid))
+            abi.encodePacked(
+                address(this),
+                _receiver,
+                _token,
+                _amount,
+                _dstChainId,
+                _nonce,
+                uint64(block.chainid)
+            )
         );
         if (_message.length > 0) {
             IMessageBus(_messageBus).sendMessageWithTransfer{value: _fee}(

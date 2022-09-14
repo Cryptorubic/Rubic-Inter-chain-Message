@@ -2,7 +2,7 @@
 
 pragma solidity >=0.8.9;
 
-import '../message/apps/SwapBase.sol';
+import "../message/apps/SwapBase.sol";
 
 contract TestMessages is SwapBase {
     constructor() {}
@@ -13,7 +13,11 @@ contract TestMessages is SwapBase {
         uint64 _dstChainId
     ) public pure returns (bytes memory) {
         bytes memory message = abi.encode(
-            SwapRequestDest({swap: _dstSwap, nonce: _nonce, dstChainId: _dstChainId})
+            SwapRequestDest({
+                swap: _dstSwap,
+                nonce: _nonce,
+                dstChainId: _dstChainId
+            })
         );
         return message;
     }
@@ -25,9 +29,18 @@ contract TestMessages is SwapBase {
         uint64 _nonce
     ) public pure returns (bytes32) {
         bytes memory message = abi.encode(
-            SwapRequestDest({swap: _dstSwap, nonce: _nonce, dstChainId: _dstChainId})
+            SwapRequestDest({
+                swap: _dstSwap,
+                nonce: _nonce,
+                dstChainId: _dstChainId
+            })
         );
-        bytes32 id = SwapBase._computeSwapRequestId(_dstSwap.receiverEOA, _chainId, _dstChainId, message);
+        bytes32 id = SwapBase._computeSwapRequestId(
+            _dstSwap.receiverEOA,
+            _chainId,
+            _dstChainId,
+            message
+        );
 
         return id;
     }

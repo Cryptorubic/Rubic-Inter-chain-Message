@@ -2,13 +2,12 @@
 
 pragma solidity >=0.8.9;
 
-import '../libraries/MsgDataTypes.sol';
-import '../libraries/MessageSenderLib.sol';
+import "../libraries/MsgDataTypes.sol";
+import "../libraries/MessageSenderLib.sol";
 
-import './MessageReceiverApp.sol';
+import "./MessageReceiverApp.sol";
 
 abstract contract MessageSenderApp is MessageReceiverApp {
-
     // ============== Utility functions called by apps ==============
 
     /**

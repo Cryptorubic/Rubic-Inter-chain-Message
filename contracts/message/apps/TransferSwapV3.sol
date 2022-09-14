@@ -2,8 +2,8 @@
 
 pragma solidity >=0.8.9;
 
-import './SwapBase.sol';
-import '../../interfaces/IUniswapRouterV3.sol';
+import "./SwapBase.sol";
+import "../../interfaces/IUniswapRouterV3.sol";
 
 contract TransferSwapV3 is SwapBase {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -17,7 +17,12 @@ contract TransferSwapV3 is SwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable {
-        uint256 _fee = _deriveFeeAndPerformChecksNative(_amountIn, _dstChainId, _dstSwap.integrator, address(_getFirstBytes20(_srcSwap.path)));
+        uint256 _fee = _deriveFeeAndPerformChecksNative(
+            _amountIn,
+            _dstChainId,
+            _dstSwap.integrator,
+            address(_getFirstBytes20(_srcSwap.path))
+        );
 
         _swapAndSendMessageV3(
             _receiver,
@@ -39,7 +44,12 @@ contract TransferSwapV3 is SwapBase {
         SwapInfoDest calldata _dstSwap,
         uint32 _maxBridgeSlippage
     ) external payable {
-        uint256 _fee = _deriveFeeAndPerformChecks(_amountIn, _dstChainId, _dstSwap.integrator, address(_getFirstBytes20(_srcSwap.path)));
+        uint256 _fee = _deriveFeeAndPerformChecks(
+            _amountIn,
+            _dstChainId,
+            _dstSwap.integrator,
+            address(_getFirstBytes20(_srcSwap.path))
+        );
 
         _swapAndSendMessageV3(
             _receiver,
@@ -88,7 +98,7 @@ contract TransferSwapV3 is SwapBase {
             _srcSwap.dex
         );
 
-        require(_srcSwap.path.length > 20, 'empty swap path');
+        require(_srcSwap.path.length > 20, "empty swap path");
 
         (bool success, uint256 srcAmtOut) = _trySwapV3(_srcSwap, _amountIn);
 
@@ -107,22 +117,32 @@ contract TransferSwapV3 is SwapBase {
         emit CrossChainRequestSent(id, _baseParams);
     }
 
-    function _trySwapV3(SwapInfoV3 memory _swap, uint256 _amount) internal returns (bool ok, uint256 amountOut) {
+    function _trySwapV3(SwapInfoV3 memory _swap, uint256 _amount)
+        internal
+        returns (bool ok, uint256 amountOut)
+    {
         if (!availableRouters.contains(_swap.dex)) {
             return (false, 0);
         }
 
-        SmartApprove.smartApprove(address(_getFirstBytes20(_swap.path)), _amount, _swap.dex);
-
-        IUniswapRouterV3.ExactInputParams memory paramsV3 = IUniswapRouterV3.ExactInputParams(
-            _swap.path,
-            address(this),
-            _swap.deadline,
+        SmartApprove.smartApprove(
+            address(_getFirstBytes20(_swap.path)),
             _amount,
-            _swap.amountOutMinimum
+            _swap.dex
         );
 
-        try IUniswapRouterV3(_swap.dex).exactInput(paramsV3) returns (uint256 _amountOut) {
+        IUniswapRouterV3.ExactInputParams memory paramsV3 = IUniswapRouterV3
+            .ExactInputParams(
+                _swap.path,
+                address(this),
+                _swap.deadline,
+                _amount,
+                _swap.amountOutMinimum
+            );
+
+        try IUniswapRouterV3(_swap.dex).exactInput(paramsV3) returns (
+            uint256 _amountOut
+        ) {
             return (true, _amountOut);
         } catch {
             return (false, 0);

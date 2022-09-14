@@ -2,12 +2,17 @@
 
 pragma solidity >=0.8.9;
 
-import './TransferSwapV2.sol';
-import './TransferSwapV3.sol';
-import './TransferSwapInch.sol';
-import './BridgeSwap.sol';
+import "./TransferSwapV2.sol";
+import "./TransferSwapV3.sol";
+import "./TransferSwapInch.sol";
+import "./BridgeSwap.sol";
 
-contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, BridgeSwap {
+contract RubicRouterV2 is
+    TransferSwapV2,
+    TransferSwapV3,
+    TransferSwapInch,
+    BridgeSwap
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
@@ -89,9 +94,20 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         returns (ExecutionStatus)
     {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
-        bytes32 id = _computeSwapRequestId(m.swap.receiverEOA, _srcChainId, uint64(block.chainid), _message);
+        bytes32 id = _computeSwapRequestId(
+            m.swap.receiverEOA,
+            _srcChainId,
+            uint64(block.chainid),
+            _message
+        );
 
-        _amount = accrueTokenFees(m.swap.integrator, integratorToFeeInfo[m.swap.integrator], _amount, 0, _token);
+        _amount = accrueTokenFees(
+            m.swap.integrator,
+            integratorToFeeInfo[m.swap.integrator],
+            _amount,
+            0,
+            _token
+        );
 
         address _outputToken = _retrieveDstTokenAddress(m.swap);
 
@@ -115,18 +131,37 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
      */
     function executeMessageWithTransferFallback(
         address, // _sender
-        address  _token,
+        address _token,
         uint256 _amount,
         uint64 _srcChainId,
         bytes calldata _message,
         address _relayer
-    ) external payable override onlyMessageBus nonReentrant onlyRelayer(_relayer) returns (ExecutionStatus) {
+    )
+        external
+        payable
+        override
+        onlyMessageBus
+        nonReentrant
+        onlyRelayer(_relayer)
+        returns (ExecutionStatus)
+    {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
 
-        bytes32 id = _computeSwapRequestId(m.swap.receiverEOA, _srcChainId, uint64(block.chainid), _message);
+        bytes32 id = _computeSwapRequestId(
+            m.swap.receiverEOA,
+            _srcChainId,
+            uint64(block.chainid),
+            _message
+        );
 
         // collect data about failed cross-chain for manual refund
-        refundDetails[id] = RefundData(m.swap.integrator, _token, _amount, m.swap.receiverEOA, m.swap.nativeOut);
+        refundDetails[id] = RefundData(
+            m.swap.integrator,
+            _token,
+            _amount,
+            m.swap.receiverEOA,
+            m.swap.nativeOut
+        );
 
         // Failed status means user hasn't received funds
         _afterTargetProcessing(id, _token, _amount, SwapStatus.Failed);
@@ -153,7 +188,12 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
     {
         SwapRequestDest memory m = abi.decode((_message), (SwapRequestDest));
 
-        bytes32 id = _computeSwapRequestId(m.swap.receiverEOA, uint64(block.chainid), m.dstChainId, _message);
+        bytes32 id = _computeSwapRequestId(
+            m.swap.receiverEOA,
+            uint64(block.chainid),
+            m.dstChainId,
+            _message
+        );
 
         _sendToken(_token, _amount, m.swap.receiverEOA, m.swap.nativeOut);
 
@@ -169,7 +209,12 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         bytes32 _id,
         SwapRequestDest memory _msgDst
     ) private {
-        _sendToken(_inputToken, _amount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
+        _sendToken(
+            _inputToken,
+            _amount,
+            _msgDst.swap.receiverEOA,
+            _msgDst.swap.nativeOut
+        );
 
         _afterTargetProcessing(_id, _inputToken, _amount, SwapStatus.Succeeded);
     }
@@ -187,15 +232,40 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
             deadline: _msgDst.swap.deadline,
             amountOutMinimum: _msgDst.swap.amountOutMinimum
         });
-
-        (bool success, uint256 dstAmount) = _trySwapV2(_dstSwap, _amount);
+        uint256 balanceBefore = IERC20Upgradeable(_outputToken).balanceOf(
+            address(this)
+        );
+        (bool success, ) = _trySwapV2(_dstSwap, _amount);
+        uint256 dstAmount = IERC20Upgradeable(_outputToken).balanceOf(
+            address(this)
+        ) - balanceBefore;
         if (success) {
-            _sendToken(_outputToken, dstAmount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
-            _afterTargetProcessing(_id, _outputToken, dstAmount, SwapStatus.Succeeded);
+            _sendToken(
+                _outputToken,
+                dstAmount,
+                _msgDst.swap.receiverEOA,
+                _msgDst.swap.nativeOut
+            );
+            _afterTargetProcessing(
+                _id,
+                _outputToken,
+                dstAmount,
+                SwapStatus.Succeeded
+            );
         } else {
             // handle swap failure, send the received token directly to receiver
-            _sendToken(_inputToken, _amount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
-            _afterTargetProcessing(_id, _inputToken, _amount, SwapStatus.Fallback);
+            _sendToken(
+                _inputToken,
+                _amount,
+                _msgDst.swap.receiverEOA,
+                _msgDst.swap.nativeOut
+            );
+            _afterTargetProcessing(
+                _id,
+                _inputToken,
+                _amount,
+                SwapStatus.Fallback
+            );
         }
     }
 
@@ -205,22 +275,52 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         uint256 _amount,
         bytes32 _id,
         SwapRequestDest memory _msgDst
-    ) private isTransit(_inputToken, address(_getFirstBytes20(_msgDst.swap.pathV3))) {
-       SwapInfoV3 memory _dstSwap = SwapInfoV3({
+    )
+        private
+        isTransit(_inputToken, address(_getFirstBytes20(_msgDst.swap.pathV3)))
+    {
+        SwapInfoV3 memory _dstSwap = SwapInfoV3({
             dex: _msgDst.swap.dex,
             path: _msgDst.swap.pathV3,
             deadline: _msgDst.swap.deadline,
             amountOutMinimum: _msgDst.swap.amountOutMinimum
         });
+        
+        uint256 balanceBefore = IERC20Upgradeable(_outputToken).balanceOf(
+            address(this)
+        );
+        (bool success, ) = _trySwapV3(_dstSwap, _amount);
+        uint256 dstAmount = IERC20Upgradeable(_outputToken).balanceOf(
+            address(this)
+        ) - balanceBefore;
 
-        (bool success, uint256 dstAmount) = _trySwapV3(_dstSwap, _amount);
         if (success) {
-            _sendToken(_outputToken, dstAmount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
-            _afterTargetProcessing(_id, _outputToken, dstAmount, SwapStatus.Succeeded);
+            _sendToken(
+                _outputToken,
+                dstAmount,
+                _msgDst.swap.receiverEOA,
+                _msgDst.swap.nativeOut
+            );
+            _afterTargetProcessing(
+                _id,
+                _outputToken,
+                dstAmount,
+                SwapStatus.Succeeded
+            );
         } else {
             // handle swap failure, send the received token directly to receiver
-            _sendToken(_inputToken, _amount, _msgDst.swap.receiverEOA, _msgDst.swap.nativeOut);
-            _afterTargetProcessing(_id, _inputToken, _amount, SwapStatus.Fallback);
+            _sendToken(
+                _inputToken,
+                _amount,
+                _msgDst.swap.receiverEOA,
+                _msgDst.swap.nativeOut
+            );
+            _afterTargetProcessing(
+                _id,
+                _inputToken,
+                _amount,
+                SwapStatus.Fallback
+            );
         }
     }
 
@@ -252,9 +352,15 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
         sendToken(_token, _amount, msg.sender);
     }
 
-    function manualRefund(bytes32 _id) external nonReentrant onlyManagerOrAdmin {
+    function manualRefund(bytes32 _id)
+        external
+        nonReentrant
+        onlyManagerOrAdmin
+    {
         SwapStatus _status = processedTransactions[_id];
-        require(_status != SwapStatus.Succeeded && _status != SwapStatus.Fallback);
+        require(
+            _status != SwapStatus.Succeeded && _status != SwapStatus.Fallback
+        );
 
         RefundData memory refundParams = refundDetails[_id];
 
@@ -266,7 +372,12 @@ contract RubicRouterV2 is TransferSwapV2, TransferSwapV3, TransferSwapInch, Brid
             refundParams.token
         );
 
-        _sendToken(refundParams.token, _amount, refundParams.to, refundParams.nativeOut);
+        _sendToken(
+            refundParams.token,
+            _amount,
+            refundParams.to,
+            refundParams.nativeOut
+        );
         processedTransactions[_id] = SwapStatus.Fallback;
     }
 

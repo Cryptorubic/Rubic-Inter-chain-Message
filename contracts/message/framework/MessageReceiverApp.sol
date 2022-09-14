@@ -2,10 +2,9 @@
 
 pragma solidity >=0.8.9;
 
-import '../../interfaces/IMessageReceiverApp.sol';
+import "../../interfaces/IMessageReceiverApp.sol";
 
 abstract contract MessageReceiverApp is IMessageReceiverApp {
-
     address public messageBus;
     event MessageBusUpdated(address messageBus);
 
@@ -15,7 +14,7 @@ abstract contract MessageReceiverApp is IMessageReceiverApp {
     }
 
     function checkIsMessageBus() internal view {
-        require(msg.sender == messageBus, 'caller is not message bus');
+        require(msg.sender == messageBus, "caller is not message bus");
     }
 
     /**
@@ -37,7 +36,14 @@ abstract contract MessageReceiverApp is IMessageReceiverApp {
         uint64 _srcChainId,
         bytes calldata _message,
         address _executor
-    ) external payable virtual override onlyMessageBus returns (ExecutionStatus) {}
+    )
+        external
+        payable
+        virtual
+        override
+        onlyMessageBus
+        returns (ExecutionStatus)
+    {}
 
     /**
      * @notice Only called by MessageBus (MessageBusReceiver) if
@@ -59,7 +65,14 @@ abstract contract MessageReceiverApp is IMessageReceiverApp {
         uint64 _srcChainId,
         bytes calldata _message,
         address _executor
-    ) external payable virtual override onlyMessageBus returns (ExecutionStatus) {}
+    )
+        external
+        payable
+        virtual
+        override
+        onlyMessageBus
+        returns (ExecutionStatus)
+    {}
 
     /**
      * @notice Called by MessageBus (MessageBusReceiver) to process refund of the original transfer from this contract
@@ -73,7 +86,14 @@ abstract contract MessageReceiverApp is IMessageReceiverApp {
         uint256 _amount,
         bytes calldata _message,
         address _executor
-    ) external payable virtual override onlyMessageBus returns (ExecutionStatus) {}
+    )
+        external
+        payable
+        virtual
+        override
+        onlyMessageBus
+        returns (ExecutionStatus)
+    {}
 
     /**
      * @notice Called by MessageBus (MessageBusReceiver)
@@ -87,5 +107,12 @@ abstract contract MessageReceiverApp is IMessageReceiverApp {
         uint64 _srcChainId,
         bytes calldata _message,
         address _executor
-    ) external payable virtual override onlyMessageBus returns (ExecutionStatus) {}
+    )
+        external
+        payable
+        virtual
+        override
+        onlyMessageBus
+        returns (ExecutionStatus)
+    {}
 }
